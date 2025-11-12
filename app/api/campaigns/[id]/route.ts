@@ -76,6 +76,8 @@ export async function GET(
       template: campaign.template,
       subject: campaign.subject,
       bodyImage: campaign.bodyImage,
+      bodyImageS3Url: campaign.bodyImageS3Url || "",
+      csvFileS3Url: campaign.csvFileS3Url || "",
       followUpTemplate: campaign.followUpTemplate,
       followUpDelay: campaign.followUpDelay || 7,
       csvData: campaign.csvData || [],
@@ -125,6 +127,8 @@ export async function PUT(
       subject,
       template,
       bodyImage,
+      bodyImageS3Url,
+      csvFileS3Url,
       followUpTemplate,
       followUpDelay,
       startDate,
@@ -142,7 +146,13 @@ export async function PUT(
     if (domainId !== undefined) updateData.domainId = domainId;
     if (subject !== undefined) updateData.subject = subject;
     if (template !== undefined) updateData.template = template;
-    if (bodyImage !== undefined) updateData.bodyImage = bodyImage;
+    if (bodyImageS3Url !== undefined) {
+      updateData.bodyImage = bodyImageS3Url || bodyImage || "";
+      updateData.bodyImageS3Url = bodyImageS3Url;
+    } else if (bodyImage !== undefined) {
+      updateData.bodyImage = bodyImage;
+    }
+    if (csvFileS3Url !== undefined) updateData.csvFileS3Url = csvFileS3Url;
     if (followUpTemplate !== undefined)
       updateData.followUpTemplate = followUpTemplate;
     if (followUpDelay !== undefined) updateData.followUpDelay = followUpDelay;

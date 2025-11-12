@@ -13,7 +13,9 @@ export interface Campaign {
   domainId: string;
   template?: string;
   subject?: string;
-  bodyImage?: string; // Base64 or URL
+  bodyImage?: string; // Base64 or URL (for backward compatibility)
+  bodyImageS3Url?: string; // S3 URL for body image
+  csvFileS3Url?: string; // S3 URL for CSV file
   followUpTemplate?: string;
   followUpDelay?: number;
   csvData?: any[]; // Lead data from CSV

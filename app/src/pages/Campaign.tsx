@@ -62,6 +62,45 @@ export default function CampaignsPage() {
   const [previewContent, setPreviewContent] = useState<string>("");
   const [previewSubject, setPreviewSubject] = useState<string>("");
   const [previewBodyImage, setPreviewBodyImage] = useState<string>("");
+  const [timeRestrictionEnabled, setTimeRestrictionEnabled] =
+    useState<boolean>(true);
+  const [currentParisTime, setCurrentParisTime] = useState<string>("");
+  const [isWithinHours, setIsWithinHours] = useState<boolean>(true);
+
+  // Load time restriction preference from localStorage
+  useEffect(() => {
+    const savedPreference = localStorage.getItem("timeRestrictionEnabled");
+    if (savedPreference !== null) {
+      setTimeRestrictionEnabled(savedPreference === "true");
+    }
+  }, []);
+
+  // Update Paris time and check if within allowed hours
+  useEffect(() => {
+    const updateParisTime = () => {
+      const now = new Date();
+      const parisTime = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(now);
+      setCurrentParisTime(parisTime);
+
+      // Check if within allowed hours
+      if (timeRestrictionEnabled) {
+        const hour = parseInt(parisTime.split(":")[0], 10);
+        setIsWithinHours(hour >= 8 && hour < 18);
+      } else {
+        setIsWithinHours(true);
+      }
+    };
+
+    updateParisTime();
+    const interval = setInterval(updateParisTime, 1000); // Update every second
+    return () => clearInterval(interval);
+  }, [timeRestrictionEnabled]);
 
   useEffect(() => {
     loadCampaigns();
@@ -69,6 +108,17 @@ export default function CampaignsPage() {
     const interval = setInterval(loadCampaigns, 5 * 60 * 1000); // Refresh every 5 minutes
     return () => clearInterval(interval);
   }, []);
+
+  // Check if current Paris time is between 8 AM and 6 PM
+  const isWithinAllowedHours = (): boolean => {
+    if (!timeRestrictionEnabled) return true;
+    return isWithinHours;
+  };
+
+  const handleTimeRestrictionToggle = (enabled: boolean) => {
+    setTimeRestrictionEnabled(enabled);
+    localStorage.setItem("timeRestrictionEnabled", enabled.toString());
+  };
 
   const loadDomains = async () => {
     try {
@@ -250,13 +300,49 @@ export default function CampaignsPage() {
             Manage and monitor your email campaigns
           </p>
         </div>
-        <Link
-          href="/campaigns/create"
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Create Campaign
-        </Link>
+        <div className="flex items-center gap-4">
+          {/* Time Restriction Toggle */}
+          <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-4 py-2">
+            <span className="text-sm text-gray-700">
+              Paris Time: {currentParisTime || "Loading..."}
+            </span>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm text-gray-700">
+                {timeRestrictionEnabled
+                  ? "8 AM - 6 PM Only"
+                  : "Always Available"}
+              </span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={timeRestrictionEnabled}
+                  onChange={(e) =>
+                    handleTimeRestrictionToggle(e.target.checked)
+                  }
+                  className="sr-only"
+                />
+                <div
+                  className={`w-14 h-7 rounded-full transition-colors ${
+                    timeRestrictionEnabled ? "bg-blue-600" : "bg-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
+                      timeRestrictionEnabled ? "translate-x-7" : "translate-x-1"
+                    } mt-0.5`}
+                  />
+                </div>
+              </div>
+            </label>
+          </div>
+          <Link
+            href="/campaigns/create"
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create Campaign
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
@@ -387,9 +473,28 @@ export default function CampaignsPage() {
                           <Edit className="w-5 h-5" />
                         </button>
                         <button
-                          className="text-green-600 hover:text-green-800"
-                          title="Send Campaign to Webhook"
-                          onClick={() => handleStartCampaign(campaign.id)}
+                          className={`${
+                            isWithinAllowedHours()
+                              ? "text-green-600 hover:text-green-800"
+                              : "text-gray-400 cursor-not-allowed opacity-50"
+                          } transition-colors`}
+                          title={
+                            isWithinAllowedHours()
+                              ? "Send Campaign to Webhook"
+                              : `Button only available 8 AM - 6 PM Paris time. Current: ${
+                                  currentParisTime || "Loading..."
+                                }`
+                          }
+                          onClick={() => {
+                            if (isWithinAllowedHours()) {
+                              handleStartCampaign(campaign.id);
+                            } else {
+                              toast.error(
+                                `Campaign can only be sent between 8 AM - 6 PM Paris time. Current time: ${currentParisTime}`
+                              );
+                            }
+                          }}
+                          disabled={!isWithinAllowedHours()}
                         >
                           <Play className="w-5 h-5" />
                         </button>

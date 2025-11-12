@@ -28,6 +28,8 @@ export default function CreateCampaign() {
   const [testEmail, setTestEmail] = useState("");
   const [bodyImage, setBodyImage] = useState<string>("");
   const [bodyImageFile, setBodyImageFile] = useState<File | null>(null);
+  const [bodyImageS3Url, setBodyImageS3Url] = useState<string>("");
+  const [csvFileS3Url, setCsvFileS3Url] = useState<string>("");
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewLead, setPreviewLead] = useState<any | null>(null);
   const [previewContent, setPreviewContent] = useState<string>("");
@@ -143,6 +145,28 @@ export default function CreateCampaign() {
     setShowPreviewModal(true);
   };
 
+  const uploadFileToS3 = async (
+    file: File,
+    fileType: "image" | "csv"
+  ): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileType", fileType);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to upload file to S3");
+    }
+
+    const data = await response.json();
+    return data.url;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -159,25 +183,44 @@ export default function CreateCampaign() {
 
     try {
       setLoading(true);
-      // Create campaign with all data including images
+
+      // Upload image to S3 if present
+      let bodyImageUrl = "";
+      if (bodyImageFile) {
+        toast.loading("Uploading image to S3...", { id: "upload-image" });
+        bodyImageUrl = await uploadFileToS3(bodyImageFile, "image");
+        toast.success("Image uploaded successfully", { id: "upload-image" });
+      }
+
+      // Upload CSV file to S3 if present
+      let csvFileUrl = "";
+      if (csvFile) {
+        toast.loading("Uploading CSV file to S3...", { id: "upload-csv" });
+        csvFileUrl = await uploadFileToS3(csvFile, "csv");
+        toast.success("CSV file uploaded successfully", { id: "upload-csv" });
+      }
+
+      // Create campaign with all data including S3 URLs
       const campaignData = {
         name: formData.name,
         domainId: formData.domainId,
         subject: formData.subject,
         template: formData.template,
-        bodyImage: bodyImage,
+        bodyImage: bodyImageUrl, // Store S3 URL instead of base64
+        bodyImageS3Url: bodyImageUrl, // Also store separately for clarity
+        csvFileS3Url: csvFileUrl, // Store CSV S3 URL
         followUpTemplate: formData.followUpTemplate,
         followUpDelay: parseInt(formData.followUpDelay) || 7,
         startDate: formData.startDate,
         startTime: formData.startTime,
-        csvData: csvData,
+        csvData: csvData, // Keep parsed CSV data for immediate use
       };
 
       await campaignApi.create(campaignData as any);
       toast.success("Campaign created successfully!");
       router.push("/campaigns");
-    } catch (error) {
-      toast.error("Failed to create campaign");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create campaign");
       console.error(error);
     } finally {
       setLoading(false);

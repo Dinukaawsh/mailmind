@@ -59,7 +59,13 @@ export default function EditCampaignModal({
     startDate: campaign.startDate || "",
     startTime: campaign.startTime || "",
   });
-  const [bodyImage, setBodyImage] = useState<string>(campaign.bodyImage || "");
+  // Initialize with S3 URL if available, otherwise fallback to bodyImage (for backward compatibility)
+  const [bodyImage, setBodyImage] = useState<string>(
+    campaign.bodyImageS3Url || campaign.bodyImage || ""
+  );
+  const [bodyImageFile, setBodyImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState<boolean>(false);
+  const [presignedImageUrl, setPresignedImageUrl] = useState<string>("");
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any[]>(campaign.csvData || []);
   const [csvColumns, setCsvColumns] = useState<string[]>([]);
@@ -73,6 +79,52 @@ export default function EditCampaignModal({
       setCsvColumns(columns);
     }
   }, [csvData]);
+
+  // Fetch presigned URL for S3 images
+  useEffect(() => {
+    const fetchPresignedUrl = async () => {
+      if (!bodyImage) {
+        setPresignedImageUrl("");
+        return;
+      }
+
+      // If it's a base64 image, use it directly
+      if (bodyImage.startsWith("data:")) {
+        setPresignedImageUrl(bodyImage);
+        return;
+      }
+
+      // If it's an S3 URL, get presigned URL
+      if (bodyImage.includes("amazonaws.com")) {
+        try {
+          const response = await fetch("/api/s3-presigned-url", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ s3Url: bodyImage }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setPresignedImageUrl(data.url);
+          } else {
+            console.error("Failed to get presigned URL");
+            setPresignedImageUrl(bodyImage); // Fallback to original URL
+          }
+        } catch (error) {
+          console.error("Error fetching presigned URL:", error);
+          setPresignedImageUrl(bodyImage); // Fallback to original URL
+        }
+      } else {
+        // Regular URL (not S3), use directly
+        setPresignedImageUrl(bodyImage);
+      }
+    };
+
+    fetchPresignedUrl();
+    setImageError(false);
+  }, [bodyImage]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,6 +143,7 @@ export default function EditCampaignModal({
     const reader = new FileReader();
     reader.onloadend = () => {
       setBodyImage(reader.result as string);
+      setBodyImageFile(file);
       toast.success("Image uploaded successfully");
     };
     reader.onerror = () => {
@@ -137,19 +190,60 @@ export default function EditCampaignModal({
     });
   };
 
+  const uploadFileToS3 = async (
+    file: File,
+    fileType: "image" | "csv"
+  ): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileType", fileType);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to upload file to S3");
+    }
+
+    const data = await response.json();
+    return data.url;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
+
+      // Upload image to S3 if a new image was uploaded
+      let bodyImageUrl = campaign.bodyImageS3Url || campaign.bodyImage || "";
+      if (bodyImageFile) {
+        toast.loading("Uploading image to S3...", { id: "upload-image" });
+        bodyImageUrl = await uploadFileToS3(bodyImageFile, "image");
+        toast.success("Image uploaded successfully", { id: "upload-image" });
+      }
+
+      // Upload CSV file to S3 if a new CSV was uploaded
+      let csvFileUrl = campaign.csvFileS3Url || "";
+      if (csvFile) {
+        toast.loading("Uploading CSV file to S3...", { id: "upload-csv" });
+        csvFileUrl = await uploadFileToS3(csvFile, "csv");
+        toast.success("CSV file uploaded successfully", { id: "upload-csv" });
+      }
+
       await onUpdate(campaign.id, {
         ...formData,
-        bodyImage,
+        bodyImage: bodyImageUrl,
+        bodyImageS3Url: bodyImageUrl,
+        csvFileS3Url: csvFileUrl,
         csvData,
       });
       toast.success("Campaign updated successfully!");
       onClose();
-    } catch (error) {
-      toast.error("Failed to update campaign");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update campaign");
       console.error(error);
     } finally {
       setLoading(false);
@@ -287,14 +381,34 @@ export default function EditCampaignModal({
                 </label>
                 {bodyImage ? (
                   <div className="relative border border-gray-300 rounded-lg p-4 bg-gray-50">
-                    <img
-                      src={bodyImage}
-                      alt="Body preview"
-                      className="max-h-48 mx-auto rounded"
-                    />
+                    {imageError ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <p className="text-sm">Failed to load image</p>
+                        <p className="text-xs mt-1">
+                          URL: {bodyImage.substring(0, 50)}...
+                        </p>
+                      </div>
+                    ) : presignedImageUrl ? (
+                      <img
+                        src={presignedImageUrl}
+                        alt="Body preview"
+                        className="max-h-48 mx-auto rounded"
+                        onError={() => setImageError(true)}
+                        onLoad={() => setImageError(false)}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        <p className="text-sm">Loading image...</p>
+                      </div>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setBodyImage("")}
+                      onClick={() => {
+                        setBodyImage("");
+                        setBodyImageFile(null);
+                        setImageError(false);
+                        setPresignedImageUrl("");
+                      }}
                       className="absolute top-2 right-2 text-red-600 hover:text-red-800"
                     >
                       <X className="w-5 h-5" />
