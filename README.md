@@ -1,4 +1,4 @@
-# MailMimic - Email Outreach Automation Platform
+# Mail-Mind - Email Outreach Automation Platform
 
 A comprehensive email campaign management platform built with Next.js that enables businesses to create, manage, and automate email outreach campaigns with a human-like approach. The platform includes lead management, domain configuration, campaign analytics, and time-based restrictions for optimal email delivery.
 

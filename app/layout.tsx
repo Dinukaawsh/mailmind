@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MailMimic - Email Outreach Automation",
+  title: "Mail-Mind - Email Outreach Automation",
   description: "Automate email outreach in a human-like manner",
 };
 
