@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   Plus,
   Search,
@@ -26,6 +25,7 @@ import PreviewModal from "../components/PreviewModal";
 import CampaignDetailsModal from "../components/CampaignDetailsModal";
 import EditCampaignModal from "../components/EditCampaignModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import CreateCampaignModal from "../components/CreateCampaignModal";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -58,6 +58,7 @@ export default function CampaignsPage() {
   const [showRemoveLeadConfirm, setShowRemoveLeadConfirm] = useState(false);
   const [leadToRemove, setLeadToRemove] = useState<number | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewLead, setPreviewLead] = useState<any | null>(null);
   const [previewContent, setPreviewContent] = useState<string>("");
   const [previewSubject, setPreviewSubject] = useState<string>("");
@@ -335,13 +336,13 @@ export default function CampaignsPage() {
               </div>
             </label>
           </div>
-          <Link
-            href="/campaigns/create"
+          <button
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
             Create Campaign
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -573,6 +574,14 @@ export default function CampaignsPage() {
           setCampaignToDelete(null);
         }}
         onConfirm={handleDeleteCampaign}
+      />
+
+      <CreateCampaignModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          loadCampaigns();
+        }}
       />
     </div>
   );
