@@ -150,6 +150,12 @@ export const domainApi = {
     // Will be implemented later
     return fetchWithError<void>(`/api/domains/${id}`, { method: "DELETE" });
   },
+  update: async (id: string, data: Partial<import("../types").Domain>) => {
+    return fetchWithError<import("../types").Domain>(`/api/domains/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // Unsubscriber API

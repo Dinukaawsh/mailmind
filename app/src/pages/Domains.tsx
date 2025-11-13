@@ -10,10 +10,12 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Edit,
 } from "lucide-react";
 import { domainApi } from "../utils/api";
 import { Domain } from "../types";
 import toast from "react-hot-toast";
+import EditDomainModal from "../components/EditDomainModal";
 
 export default function DomainsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -21,6 +23,8 @@ export default function DomainsPage() {
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [newDomain, setNewDomain] = useState("");
   const [connectingGmail, setConnectingGmail] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
 
   useEffect(() => {
     loadDomains();
@@ -102,6 +106,22 @@ export default function DomainsPage() {
     } catch (error) {
       toast.error("Failed to sync domain");
       console.error(error);
+    }
+  };
+
+  const handleEdit = (domain: Domain) => {
+    setSelectedDomain(domain);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateDomain = async (id: string, data: Partial<Domain>) => {
+    try {
+      await domainApi.update(id, data);
+      toast.success("Domain updated successfully");
+      loadDomains();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update domain");
+      throw error;
     }
   };
 
@@ -255,6 +275,13 @@ export default function DomainsPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
+                      onClick={() => handleEdit(domain)}
+                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
                       onClick={() => handleSync(domain.id)}
                       className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Sync"
@@ -290,6 +317,17 @@ export default function DomainsPage() {
           <li>• Monitor email limits per domain to avoid rate limiting</li>
         </ul>
       </div>
+
+      {/* Edit Domain Modal */}
+      <EditDomainModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedDomain(null);
+        }}
+        domain={selectedDomain}
+        onUpdate={handleUpdateDomain}
+      />
     </div>
   );
 }
