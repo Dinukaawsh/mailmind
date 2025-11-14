@@ -33,6 +33,7 @@ export default function CreateCampaignModal({
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvColumns, setCsvColumns] = useState<string[]>([]);
+  const [hasValidEmailColumn, setHasValidEmailColumn] = useState(false);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [bodyImage, setBodyImage] = useState<string>("");
   const [bodyImageFile, setBodyImageFile] = useState<File | null>(null);
@@ -73,10 +74,44 @@ export default function CreateCampaignModal({
     setCsvFile(null);
     setCsvData([]);
     setCsvColumns([]);
+    setHasValidEmailColumn(false);
     setBodyImage("");
     setBodyImageFile(null);
     setBodyImageS3Url("");
     setCsvFileS3Url("");
+  };
+
+  const findAndNormalizeEmailColumn = (data: any[]): any[] => {
+    if (data.length === 0) return data;
+
+    const firstRow = data[0];
+    const columns = Object.keys(firstRow).filter((key) => key.trim() !== "");
+
+    // Find email column (case-insensitive, can contain "email" anywhere)
+    const emailColumnKey = columns.find((col) =>
+      col.toLowerCase().includes("email")
+    );
+
+    if (!emailColumnKey) {
+      throw new Error(
+        "CSV file must contain an email column (e.g., 'email', 'Email', 'EMAIL', 'user email', etc.)"
+      );
+    }
+
+    // If the column is already "Email", no need to normalize
+    if (emailColumnKey === "Email") {
+      return data;
+    }
+
+    // Normalize the email column to "Email" in all rows
+    const normalizedData = data.map((row) => {
+      const newRow = { ...row };
+      newRow["Email"] = newRow[emailColumnKey];
+      delete newRow[emailColumnKey];
+      return newRow;
+    });
+
+    return normalizedData;
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,26 +127,42 @@ export default function CreateCampaignModal({
     Papa.parse(file, {
       header: true,
       complete: (results: Papa.ParseResult<any>) => {
-        const data = results.data as any[];
-        setCsvData(data);
+        try {
+          const data = results.data as any[];
 
-        if (data.length > 0) {
-          const columns = Object.keys(data[0]).filter(
-            (key) => key.trim() !== ""
-          );
-          setCsvColumns(columns);
-          toast.success(
-            `Loaded ${data.length} leads from CSV with columns: ${columns.join(
-              ", "
-            )}`
-          );
-        } else {
+          if (data.length > 0) {
+            // Validate and normalize email column
+            const normalizedData = findAndNormalizeEmailColumn(data);
+            setCsvData(normalizedData);
+
+            const columns = Object.keys(normalizedData[0]).filter(
+              (key) => key.trim() !== ""
+            );
+            setCsvColumns(columns);
+            setHasValidEmailColumn(true);
+            toast.success(
+              `Loaded ${
+                normalizedData.length
+              } leads from CSV with columns: ${columns.join(", ")}`
+            );
+          } else {
+            setCsvData([]);
+            setCsvColumns([]);
+            setHasValidEmailColumn(false);
+            toast.success("CSV file loaded but no data found");
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Failed to process CSV file");
+          setCsvFile(null);
+          setCsvData([]);
           setCsvColumns([]);
-          toast.success("CSV file loaded but no data found");
+          setHasValidEmailColumn(false);
+          console.error(error);
         }
       },
       error: (error: Error) => {
         toast.error("Failed to parse CSV file");
+        setHasValidEmailColumn(false);
         console.error(error);
       },
     });
@@ -200,9 +251,14 @@ export default function CreateCampaignModal({
       !formData.domainId ||
       !formData.subject ||
       !formData.template ||
-      csvData.length === 0
+      csvData.length === 0 ||
+      !hasValidEmailColumn
     ) {
-      toast.error("Please fill in all required fields");
+      if (!hasValidEmailColumn) {
+        toast.error("CSV file must contain a valid email column");
+      } else {
+        toast.error("Please fill in all required fields");
+      }
       return;
     }
 
@@ -330,6 +386,7 @@ export default function CreateCampaignModal({
                           setCsvFile(null);
                           setCsvData([]);
                           setCsvColumns([]);
+                          setHasValidEmailColumn(false);
                         }}
                         className="text-red-600 hover:text-red-800"
                       >
@@ -597,7 +654,7 @@ export default function CreateCampaignModal({
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !hasValidEmailColumn}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Creating..." : "Create Campaign"}
