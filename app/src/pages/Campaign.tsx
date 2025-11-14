@@ -81,6 +81,8 @@ export default function CampaignsPage() {
   const [pollingIntervals, setPollingIntervals] = useState<
     Record<string, NodeJS.Timeout>
   >({});
+  const [campaignsWithHistoricalLogs, setCampaignsWithHistoricalLogs] =
+    useState<Set<string>>(new Set());
 
   // Load time restriction preference from localStorage
   useEffect(() => {
@@ -162,6 +164,24 @@ export default function CampaignsPage() {
       // Fetch campaigns from MongoDB database
       const data = await campaignApi.getAll();
       setCampaigns(data);
+
+      // Check for historical logs for each campaign
+      const campaignsWithLogs = new Set<string>();
+      await Promise.all(
+        data.map(async (campaign) => {
+          try {
+            const historicalLogs = await campaignApi.getHistoricalLogs(
+              campaign.id
+            );
+            if (historicalLogs.logs && historicalLogs.logs.length > 0) {
+              campaignsWithLogs.add(campaign.id);
+            }
+          } catch (error) {
+            // Silently fail - campaign might not have logs yet
+          }
+        })
+      );
+      setCampaignsWithHistoricalLogs(campaignsWithLogs);
     } catch (error) {
       toast.error("Failed to load campaigns");
       console.error(error);
@@ -249,6 +269,38 @@ export default function CampaignsPage() {
         delete newIntervals[campaignId];
         return newIntervals;
       });
+    }
+  };
+
+  // Function to load historical logs from database
+  const loadHistoricalLogs = async (campaignId: string) => {
+    try {
+      const response = await campaignApi.getHistoricalLogs(campaignId);
+      if (response.logs && response.logs.length > 0) {
+        // Load historical logs into state
+        setCampaignLogs((prev) => ({
+          ...prev,
+          [campaignId]: response.logs,
+        }));
+
+        // Set completion status
+        setCampaignLogsStatus((prev) => ({
+          ...prev,
+          [campaignId]: {
+            isComplete: response.isComplete || false,
+            completionMessage: response.completionMessage || undefined,
+          },
+        }));
+
+        // Open modal
+        setSelectedCampaignForLogs(campaignId);
+        setShowLogsModal(true);
+      } else {
+        toast.error("No historical logs found for this campaign");
+      }
+    } catch (error: any) {
+      toast.error("Failed to load historical logs");
+      console.error("Historical logs error:", error);
     }
   };
 
@@ -654,6 +706,7 @@ export default function CampaignsPage() {
                         >
                           <Play className="w-5 h-5" />
                         </button>
+                        {/* Live/Streaming Logs Button */}
                         {campaignLogs[campaign.id] &&
                           campaignLogs[campaign.id].length > 0 && (
                             <button
@@ -676,6 +729,17 @@ export default function CampaignsPage() {
                               {!campaignLogsStatus[campaign.id]?.isComplete && (
                                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
                               )}
+                            </button>
+                          )}
+                        {/* Historical Logs Button (shown when live logs are cleared but historical logs exist) */}
+                        {!campaignLogs[campaign.id] &&
+                          campaignsWithHistoricalLogs.has(campaign.id) && (
+                            <button
+                              className="text-indigo-600 hover:text-indigo-800"
+                              title="View Past Logs"
+                              onClick={() => loadHistoricalLogs(campaign.id)}
+                            >
+                              <MessageSquare className="w-5 h-5" />
                             </button>
                           )}
                         <button
@@ -790,9 +854,16 @@ export default function CampaignsPage() {
                 return newStatus;
               });
 
-              // Clear logs from server
+              // Clear logs from server (but keep in database for historical logs)
               campaignApi.clearLogs(campaignId).catch((error) => {
                 console.debug("Failed to clear logs:", error);
+              });
+
+              // Mark that this campaign has historical logs
+              setCampaignsWithHistoricalLogs((prev) => {
+                const newSet = new Set(prev);
+                newSet.add(campaignId);
+                return newSet;
               });
             }
           }
