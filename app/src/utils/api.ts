@@ -128,6 +128,19 @@ export const campaignApi = {
       method: "POST",
       body: JSON.stringify({ email: testEmail }),
     }),
+  getLogs: (id: string) =>
+    fetchWithError<{
+      logs: string[];
+      lastUpdated: string | null;
+      count: number;
+      isComplete: boolean;
+      completionMessage?: string | null;
+    }>(`/api/campaigns/${id}/logs`),
+  clearLogs: (id: string) =>
+    fetchWithError<{ success: boolean; message: string }>(
+      `/api/campaigns/${id}/logs`,
+      { method: "DELETE" }
+    ),
 };
 
 // Domain API

@@ -67,6 +67,14 @@ export async function POST(
       );
     }
 
+    // Get base URL for logs endpoint
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
+    const logsEndpointUrl = `${baseUrl}/api/campaigns/${id}/logs`;
+
     // Prepare ALL campaign data for webhook
     // Send complete campaign object with all fields
     const campaignData = {
@@ -89,6 +97,8 @@ export async function POST(
       unsubscribeCount: campaign.unsubscribeCount || 0,
       status: campaign.status || "paused",
       createdAt: campaign.createdAt || new Date().toISOString(),
+      // Include logs endpoint URL so n8n can send logs back
+      logsEndpoint: logsEndpointUrl,
     };
 
     // Send to webhook with timeout
