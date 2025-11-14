@@ -26,6 +26,7 @@ import CampaignDetailsModal from "../components/CampaignDetailsModal";
 import EditCampaignModal from "../components/EditCampaignModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import CreateCampaignModal from "../components/CreateCampaignModal";
+import LogsModal from "../components/LogsModal";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -67,6 +68,19 @@ export default function CampaignsPage() {
     useState<boolean>(true);
   const [currentParisTime, setCurrentParisTime] = useState<string>("");
   const [isWithinHours, setIsWithinHours] = useState<boolean>(true);
+  const [campaignLogs, setCampaignLogs] = useState<Record<string, string[]>>(
+    {}
+  );
+  const [campaignLogsStatus, setCampaignLogsStatus] = useState<
+    Record<string, { isComplete: boolean; completionMessage?: string }>
+  >({});
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [selectedCampaignForLogs, setSelectedCampaignForLogs] = useState<
+    string | null
+  >(null);
+  const [pollingIntervals, setPollingIntervals] = useState<
+    Record<string, NodeJS.Timeout>
+  >({});
 
   // Load time restriction preference from localStorage
   useEffect(() => {
@@ -107,8 +121,19 @@ export default function CampaignsPage() {
     loadCampaigns();
     loadDomains();
     const interval = setInterval(loadCampaigns, 5 * 60 * 1000); // Refresh every 5 minutes
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
+
+  // Cleanup polling intervals on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pollingIntervals).forEach((intervalId) =>
+        clearInterval(intervalId)
+      );
+    };
+  }, [pollingIntervals]);
 
   // Check if current Paris time is between 8 AM and 6 PM
   const isWithinAllowedHours = (): boolean => {
@@ -145,6 +170,88 @@ export default function CampaignsPage() {
     }
   };
 
+  // Function to fetch logs for a campaign
+  const fetchCampaignLogs = async (campaignId: string) => {
+    try {
+      const response = await campaignApi.getLogs(campaignId);
+      if (response.logs && response.logs.length > 0) {
+        setCampaignLogs((prev) => ({
+          ...prev,
+          [campaignId]: response.logs,
+        }));
+      }
+
+      // Update completion status
+      if (response.isComplete !== undefined) {
+        setCampaignLogsStatus((prev) => ({
+          ...prev,
+          [campaignId]: {
+            isComplete: response.isComplete,
+            completionMessage: response.completionMessage || undefined,
+          },
+        }));
+
+        // Stop polling if complete
+        if (response.isComplete) {
+          stopLogPolling(campaignId);
+        }
+      }
+    } catch (error) {
+      // Silently fail - logs might not be available yet
+      console.debug("Failed to fetch logs:", error);
+    }
+  };
+
+  // Function to start polling logs for a campaign
+  const startLogPolling = (campaignId: string) => {
+    // Clear any existing polling for this campaign
+    setPollingIntervals((prev) => {
+      if (prev[campaignId]) {
+        clearInterval(prev[campaignId]);
+      }
+      return prev;
+    });
+
+    // Initial fetch
+    fetchCampaignLogs(campaignId);
+
+    // Start polling every 2 seconds
+    const intervalId = setInterval(() => {
+      fetchCampaignLogs(campaignId);
+    }, 2000);
+
+    // Store interval ID
+    setPollingIntervals((prev) => ({
+      ...prev,
+      [campaignId]: intervalId,
+    }));
+
+    // Stop polling after 5 minutes (300 seconds)
+    setTimeout(() => {
+      setPollingIntervals((prev) => {
+        if (prev[campaignId]) {
+          clearInterval(prev[campaignId]);
+          const newIntervals = { ...prev };
+          delete newIntervals[campaignId];
+          return newIntervals;
+        }
+        return prev;
+      });
+    }, 5 * 60 * 1000);
+  };
+
+  // Function to stop polling logs for a campaign
+  const stopLogPolling = (campaignId: string) => {
+    if (pollingIntervals[campaignId]) {
+      clearInterval(pollingIntervals[campaignId]);
+      setPollingIntervals((prev) => {
+        const newIntervals = { ...prev };
+        delete newIntervals[campaignId];
+        return newIntervals;
+      });
+    }
+  };
+
   const handleStartCampaign = async (campaignId: string) => {
     try {
       const response = await campaignApi.start(campaignId);
@@ -166,6 +273,52 @@ export default function CampaignsPage() {
               duration: 4000,
             }
           );
+
+          // Start polling for logs from n8n webhook
+          startLogPolling(campaignId);
+
+          // Extract and store logs from webhook response if available (fallback)
+          if (data) {
+            let logs: string[] = [];
+
+            // Handle different log formats from webhook
+            if (Array.isArray(data.logs)) {
+              logs = data.logs;
+            } else if (typeof data.logs === "string") {
+              logs = data.logs
+                .split("\n")
+                .filter((line: string) => line.trim());
+            } else if (data.message) {
+              logs = [data.message];
+            } else if (typeof data === "string") {
+              logs = [data];
+            } else if (data.output || data.result) {
+              // Handle n8n-style responses
+              const output = data.output || data.result;
+              if (Array.isArray(output)) {
+                logs = output.map((item: any) =>
+                  typeof item === "string"
+                    ? item
+                    : JSON.stringify(item, null, 2)
+                );
+              } else if (typeof output === "string") {
+                logs = output.split("\n").filter((line: string) => line.trim());
+              } else {
+                logs = [JSON.stringify(output, null, 2)];
+              }
+            } else {
+              // Fallback: stringify the entire data object
+              logs = [JSON.stringify(data, null, 2)];
+            }
+
+            // Store logs for this campaign (if any initial logs)
+            if (logs.length > 0) {
+              setCampaignLogs((prev) => ({
+                ...prev,
+                [campaignId]: logs,
+              }));
+            }
+          }
         } else {
           // Extract error message from webhook response
           const errorMessage = data?.message || data?.error || statusText;
@@ -191,6 +344,8 @@ export default function CampaignsPage() {
         // Fallback if no webhook response but we have a response
         if (response.success) {
           toast.success("Campaign sent to webhook successfully!");
+          // Start polling for logs even if no immediate response
+          startLogPolling(campaignId);
         } else {
           toast.error(response.message || "Webhook returned an error");
         }
@@ -481,7 +636,7 @@ export default function CampaignsPage() {
                           } transition-colors`}
                           title={
                             isWithinAllowedHours()
-                              ? "Send Campaign to Webhook"
+                              ? "Launch Campaign"
                               : `Button only available 8 AM - 6 PM Paris time. Current: ${
                                   currentParisTime || "Loading..."
                                 }`
@@ -499,6 +654,30 @@ export default function CampaignsPage() {
                         >
                           <Play className="w-5 h-5" />
                         </button>
+                        {campaignLogs[campaign.id] &&
+                          campaignLogs[campaign.id].length > 0 && (
+                            <button
+                              className="text-purple-600 hover:text-purple-800 relative"
+                              title="View Webhook Logs"
+                              onClick={() => {
+                                setSelectedCampaignForLogs(campaign.id);
+                                setShowLogsModal(true);
+                                // Resume polling if not complete
+                                const status = campaignLogsStatus[campaign.id];
+                                if (
+                                  !status?.isComplete &&
+                                  !pollingIntervals[campaign.id]
+                                ) {
+                                  startLogPolling(campaign.id);
+                                }
+                              }}
+                            >
+                              <MessageSquare className="w-5 h-5" />
+                              {!campaignLogsStatus[campaign.id]?.isComplete && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
+                              )}
+                            </button>
+                          )}
                         <button
                           className="text-red-600 hover:text-red-800"
                           title="Delete Campaign"
@@ -582,6 +761,64 @@ export default function CampaignsPage() {
         onSuccess={() => {
           loadCampaigns();
         }}
+      />
+
+      <LogsModal
+        isOpen={showLogsModal}
+        onClose={() => {
+          const campaignId = selectedCampaignForLogs;
+          setShowLogsModal(false);
+
+          if (campaignId) {
+            // Stop polling when modal is closed
+            stopLogPolling(campaignId);
+
+            // Clear logs if processing is complete
+            const status = campaignLogsStatus[campaignId];
+            if (status?.isComplete) {
+              // Clear logs from state
+              setCampaignLogs((prev) => {
+                const newLogs = { ...prev };
+                delete newLogs[campaignId];
+                return newLogs;
+              });
+
+              // Clear status
+              setCampaignLogsStatus((prev) => {
+                const newStatus = { ...prev };
+                delete newStatus[campaignId];
+                return newStatus;
+              });
+
+              // Clear logs from server
+              campaignApi.clearLogs(campaignId).catch((error) => {
+                console.debug("Failed to clear logs:", error);
+              });
+            }
+          }
+
+          setSelectedCampaignForLogs(null);
+        }}
+        logs={
+          selectedCampaignForLogs
+            ? campaignLogs[selectedCampaignForLogs] || []
+            : []
+        }
+        campaignName={
+          selectedCampaignForLogs
+            ? campaigns.find((c) => c.id === selectedCampaignForLogs)?.name
+            : undefined
+        }
+        isComplete={
+          selectedCampaignForLogs
+            ? campaignLogsStatus[selectedCampaignForLogs]?.isComplete || false
+            : false
+        }
+        completionMessage={
+          selectedCampaignForLogs
+            ? campaignLogsStatus[selectedCampaignForLogs]?.completionMessage
+            : undefined
+        }
       />
     </div>
   );
