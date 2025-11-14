@@ -141,6 +141,14 @@ export const campaignApi = {
       `/api/campaigns/${id}/logs`,
       { method: "DELETE" }
     ),
+  getHistoricalLogs: (id: string) =>
+    fetchWithError<{
+      logs: string[];
+      lastUpdated: string | null;
+      count: number;
+      isComplete: boolean;
+      completionMessage?: string | null;
+    }>(`/api/campaigns/${id}/logs/history`),
 };
 
 // Domain API
