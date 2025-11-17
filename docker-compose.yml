@@ -1,0 +1,17 @@
+services:
+  mailmind:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${CONTAINER_PORT}:3000"
+    container_name: "${CONTAINER_NAME}"
+    env_file:
+      - .env
+    networks:
+      - nginx
+    restart: unless-stopped
+
+networks:
+  nginx:
+    external: true
