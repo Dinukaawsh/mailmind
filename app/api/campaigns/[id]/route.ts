@@ -147,10 +147,16 @@ export async function PUT(
     if (subject !== undefined) updateData.subject = subject;
     if (template !== undefined) updateData.template = template;
     if (bodyImageS3Url !== undefined) {
-      updateData.bodyImage = bodyImageS3Url || bodyImage || "";
+      // Allow empty string to clear the image
+      updateData.bodyImage = bodyImageS3Url;
       updateData.bodyImageS3Url = bodyImageS3Url;
     } else if (bodyImage !== undefined) {
+      // Allow empty string to clear the image
       updateData.bodyImage = bodyImage;
+      // If bodyImage is empty, also clear bodyImageS3Url
+      if (bodyImage === "") {
+        updateData.bodyImageS3Url = "";
+      }
     }
     if (csvFileS3Url !== undefined) updateData.csvFileS3Url = csvFileS3Url;
     if (followUpTemplate !== undefined)

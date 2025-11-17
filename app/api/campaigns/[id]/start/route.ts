@@ -75,6 +75,52 @@ export async function POST(
         : "http://localhost:3000");
     const logsEndpointUrl = `${baseUrl}/api/campaigns/${id}/logs`;
 
+    // Normalize email column in CSV data to ensure it's always "Email" before sending to webhook
+    const normalizeEmailColumn = (data: any[]): any[] => {
+      if (!data || data.length === 0) return data || [];
+
+      const firstRow = data[0];
+      const columns = Object.keys(firstRow).filter((key) => key.trim() !== "");
+
+      // Find email column (case-insensitive, can contain "email" anywhere)
+      // Prioritize exact matches first, then partial matches
+      let emailColumnKey = columns.find(
+        (col) => col.toLowerCase().trim() === "email"
+      );
+
+      // If no exact match, find any column containing "email"
+      if (!emailColumnKey) {
+        emailColumnKey = columns.find((col) =>
+          col.toLowerCase().includes("email")
+        );
+      }
+
+      // If no email column found, return data as-is (might be empty or invalid)
+      if (!emailColumnKey) {
+        return data;
+      }
+
+      // If already normalized to "Email", return as-is
+      if (emailColumnKey === "Email") {
+        return data;
+      }
+
+      // Normalize the email column to "Email" in all rows
+      return data.map((row) => {
+        const newRow = { ...row };
+        // Copy email value to "Email" field
+        newRow["Email"] = newRow[emailColumnKey];
+        // Remove the old email column if it's different from "Email"
+        if (emailColumnKey !== "Email") {
+          delete newRow[emailColumnKey];
+        }
+        return newRow;
+      });
+    };
+
+    // Normalize CSV data before sending to webhook
+    const normalizedCsvData = normalizeEmailColumn(campaign.csvData || []);
+
     // Prepare ALL campaign data for webhook
     // Send complete campaign object with all fields
     const campaignData = {
@@ -89,7 +135,7 @@ export async function POST(
       followUpDelay: campaign.followUpDelay || 7,
       startDate: campaign.startDate || "",
       startTime: campaign.startTime || "",
-      csvData: campaign.csvData || [],
+      csvData: normalizedCsvData, // Use normalized CSV data
       sentCount: campaign.sentCount || 0,
       openRate: campaign.openRate || 0,
       replyRate: campaign.replyRate || 0,
