@@ -306,6 +306,23 @@ export default function CampaignsPage() {
 
   const handleStartCampaign = async (campaignId: string) => {
     try {
+      // Clear existing logs before starting new campaign
+      setCampaignLogs((prev) => {
+        const newLogs = { ...prev };
+        delete newLogs[campaignId];
+        return newLogs;
+      });
+
+      // Clear existing status
+      setCampaignLogsStatus((prev) => {
+        const newStatus = { ...prev };
+        delete newStatus[campaignId];
+        return newStatus;
+      });
+
+      // Stop any existing polling
+      stopLogPolling(campaignId);
+
       const response = await campaignApi.start(campaignId);
 
       // Display webhook response details if available
@@ -706,12 +723,12 @@ export default function CampaignsPage() {
                         >
                           <Play className="w-5 h-5" />
                         </button>
-                        {/* Live/Streaming Logs Button */}
+                        {/* Live/Streaming Logs Button (Purple) - Active streaming logs */}
                         {campaignLogs[campaign.id] &&
                           campaignLogs[campaign.id].length > 0 && (
                             <button
                               className="text-purple-600 hover:text-purple-800 relative"
-                              title="View Webhook Logs"
+                              title="View Live Logs (Streaming)"
                               onClick={() => {
                                 setSelectedCampaignForLogs(campaign.id);
                                 setShowLogsModal(true);
@@ -731,17 +748,16 @@ export default function CampaignsPage() {
                               )}
                             </button>
                           )}
-                        {/* Historical Logs Button (shown when live logs are cleared but historical logs exist) */}
-                        {!campaignLogs[campaign.id] &&
-                          campaignsWithHistoricalLogs.has(campaign.id) && (
-                            <button
-                              className="text-indigo-600 hover:text-indigo-800"
-                              title="View Past Logs"
-                              onClick={() => loadHistoricalLogs(campaign.id)}
-                            >
-                              <MessageSquare className="w-5 h-5" />
-                            </button>
-                          )}
+                        {/* Historical Logs Button (Red) - Past completed logs */}
+                        {campaignsWithHistoricalLogs.has(campaign.id) && (
+                          <button
+                            className="text-red-600 hover:text-red-800"
+                            title="View Historical Logs"
+                            onClick={() => loadHistoricalLogs(campaign.id)}
+                          >
+                            <MessageSquare className="w-5 h-5" />
+                          </button>
+                        )}
                         <button
                           className="text-red-600 hover:text-red-800"
                           title="Delete Campaign"
