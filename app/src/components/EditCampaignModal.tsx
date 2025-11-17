@@ -70,6 +70,28 @@ export default function EditCampaignModal({
   const [csvData, setCsvData] = useState<any[]>(campaign.csvData || []);
   const [csvColumns, setCsvColumns] = useState<string[]>([]);
 
+  // Reset form state when campaign changes or modal opens
+  useEffect(() => {
+    if (isOpen && campaign) {
+      setFormData({
+        name: campaign.name || "",
+        domainId: campaign.domainId || "",
+        subject: campaign.subject || "",
+        template: campaign.template || "",
+        followUpTemplate: campaign.followUpTemplate || "",
+        followUpDelay: campaign.followUpDelay || 7,
+        startDate: campaign.startDate || "",
+        startTime: campaign.startTime || "",
+      });
+      // Reset image state from campaign (will be empty if deleted)
+      setBodyImage(campaign.bodyImageS3Url || campaign.bodyImage || "");
+      setBodyImageFile(null);
+      setImageError(false);
+      setCsvData(campaign.csvData || []);
+      setCsvFile(null);
+    }
+  }, [isOpen, campaign?.id]);
+
   // Initialize columns from existing CSV data
   useEffect(() => {
     if (csvData.length > 0) {
@@ -152,6 +174,60 @@ export default function EditCampaignModal({
     reader.readAsDataURL(file);
   };
 
+  const findAndNormalizeEmailColumn = (data: any[]): any[] => {
+    if (data.length === 0) return data;
+
+    const firstRow = data[0];
+    const columns = Object.keys(firstRow).filter((key) => key.trim() !== "");
+
+    // Find email column (case-insensitive, can contain "email" anywhere)
+    // Prioritize exact matches first, then partial matches
+    let emailColumnKey = columns.find(
+      (col) => col.toLowerCase().trim() === "email"
+    );
+
+    // If no exact match, find any column containing "email"
+    if (!emailColumnKey) {
+      emailColumnKey = columns.find((col) =>
+        col.toLowerCase().includes("email")
+      );
+    }
+
+    if (!emailColumnKey) {
+      throw new Error(
+        "CSV file must contain an email column (e.g., 'email', 'Email', 'EMAIL', 'user email', etc.)"
+      );
+    }
+
+    // Always normalize to "Email" (capital E, rest lowercase) to ensure consistency
+    // This ensures the webhook always receives "Email" as the field name
+    if (emailColumnKey === "Email") {
+      // Already normalized, but ensure all rows have it
+      return data.map((row) => {
+        const newRow = { ...row };
+        // Ensure Email field exists and is properly formatted
+        if (!newRow["Email"] && newRow[emailColumnKey]) {
+          newRow["Email"] = newRow[emailColumnKey];
+        }
+        return newRow;
+      });
+    }
+
+    // Normalize the email column to "Email" in all rows
+    const normalizedData = data.map((row) => {
+      const newRow = { ...row };
+      // Copy email value to "Email" field
+      newRow["Email"] = newRow[emailColumnKey];
+      // Remove the old email column if it's different from "Email"
+      if (emailColumnKey !== "Email") {
+        delete newRow[emailColumnKey];
+      }
+      return newRow;
+    });
+
+    return normalizedData;
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -165,22 +241,34 @@ export default function EditCampaignModal({
     Papa.parse(file, {
       header: true,
       complete: (results: Papa.ParseResult<any>) => {
-        const data = results.data as any[];
-        setCsvData(data);
+        try {
+          const data = results.data as any[];
 
-        if (data.length > 0) {
-          const columns = Object.keys(data[0]).filter(
-            (key) => key.trim() !== ""
-          );
-          setCsvColumns(columns);
-          toast.success(
-            `Loaded ${data.length} leads from CSV with columns: ${columns.join(
-              ", "
-            )}`
-          );
-        } else {
+          if (data.length > 0) {
+            // Validate and normalize email column
+            const normalizedData = findAndNormalizeEmailColumn(data);
+            setCsvData(normalizedData);
+
+            const columns = Object.keys(normalizedData[0]).filter(
+              (key) => key.trim() !== ""
+            );
+            setCsvColumns(columns);
+            toast.success(
+              `Loaded ${
+                normalizedData.length
+              } leads from CSV with columns: ${columns.join(", ")}`
+            );
+          } else {
+            setCsvData([]);
+            setCsvColumns([]);
+            toast.success("CSV file loaded but no data found");
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Failed to process CSV file");
+          setCsvFile(null);
+          setCsvData([]);
           setCsvColumns([]);
-          toast.success("CSV file loaded but no data found");
+          console.error(error);
         }
       },
       error: (error: Error) => {
@@ -217,12 +305,20 @@ export default function EditCampaignModal({
     try {
       setLoading(true);
 
-      // Upload image to S3 if a new image was uploaded
-      let bodyImageUrl = campaign.bodyImageS3Url || campaign.bodyImage || "";
+      // Handle image: if bodyImage is empty (user deleted it), set to empty string
+      // Otherwise, if new image uploaded, upload it; if not, keep existing
+      let bodyImageUrl = "";
       if (bodyImageFile) {
+        // New image uploaded
         toast.loading("Uploading image to S3...", { id: "upload-image" });
         bodyImageUrl = await uploadFileToS3(bodyImageFile, "image");
         toast.success("Image uploaded successfully", { id: "upload-image" });
+      } else if (bodyImage) {
+        // Image still exists (not deleted), use existing
+        bodyImageUrl = bodyImage;
+      } else {
+        // Image was deleted (bodyImage is empty), explicitly set to empty string
+        bodyImageUrl = "";
       }
 
       // Upload CSV file to S3 if a new CSV was uploaded
@@ -233,12 +329,15 @@ export default function EditCampaignModal({
         toast.success("CSV file uploaded successfully", { id: "upload-csv" });
       }
 
+      // Ensure email column is normalized to "Email" before sending to webhook
+      const normalizedCsvData = findAndNormalizeEmailColumn(csvData);
+
       await onUpdate(campaign.id, {
         ...formData,
         bodyImage: bodyImageUrl,
         bodyImageS3Url: bodyImageUrl,
         csvFileS3Url: csvFileUrl,
-        csvData,
+        csvData: normalizedCsvData,
       });
       toast.success("Campaign updated successfully!");
       onClose();

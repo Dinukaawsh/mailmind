@@ -88,9 +88,17 @@ export default function CreateCampaignModal({
     const columns = Object.keys(firstRow).filter((key) => key.trim() !== "");
 
     // Find email column (case-insensitive, can contain "email" anywhere)
-    const emailColumnKey = columns.find((col) =>
-      col.toLowerCase().includes("email")
+    // Prioritize exact matches first, then partial matches
+    let emailColumnKey = columns.find(
+      (col) => col.toLowerCase().trim() === "email"
     );
+
+    // If no exact match, find any column containing "email"
+    if (!emailColumnKey) {
+      emailColumnKey = columns.find((col) =>
+        col.toLowerCase().includes("email")
+      );
+    }
 
     if (!emailColumnKey) {
       throw new Error(
@@ -98,16 +106,29 @@ export default function CreateCampaignModal({
       );
     }
 
-    // If the column is already "Email", no need to normalize
+    // Always normalize to "Email" (capital E, rest lowercase) to ensure consistency
+    // This ensures the webhook always receives "Email" as the field name
     if (emailColumnKey === "Email") {
-      return data;
+      // Already normalized, but ensure all rows have it
+      return data.map((row) => {
+        const newRow = { ...row };
+        // Ensure Email field exists and is properly formatted
+        if (!newRow["Email"] && newRow[emailColumnKey]) {
+          newRow["Email"] = newRow[emailColumnKey];
+        }
+        return newRow;
+      });
     }
 
     // Normalize the email column to "Email" in all rows
     const normalizedData = data.map((row) => {
       const newRow = { ...row };
+      // Copy email value to "Email" field
       newRow["Email"] = newRow[emailColumnKey];
-      delete newRow[emailColumnKey];
+      // Remove the old email column if it's different from "Email"
+      if (emailColumnKey !== "Email") {
+        delete newRow[emailColumnKey];
+      }
       return newRow;
     });
 
@@ -279,6 +300,9 @@ export default function CreateCampaignModal({
         toast.success("CSV file uploaded successfully", { id: "upload-csv" });
       }
 
+      // Ensure email column is normalized to "Email" before sending to webhook
+      const normalizedCsvData = findAndNormalizeEmailColumn(csvData);
+
       const campaignData = {
         name: formData.name,
         domainId: formData.domainId,
@@ -291,7 +315,7 @@ export default function CreateCampaignModal({
         followUpDelay: parseInt(formData.followUpDelay) || 7,
         startDate: formData.startDate,
         startTime: formData.startTime,
-        csvData: csvData,
+        csvData: normalizedCsvData,
       };
 
       await campaignApi.create(campaignData as any);
