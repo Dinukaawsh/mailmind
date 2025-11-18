@@ -8,11 +8,19 @@ A comprehensive email campaign management platform built with Next.js that enabl
 
 - **Create & Edit Campaigns**: Build personalized email campaigns with custom templates
 - **CSV Lead Import**: Upload CSV files with lead data for bulk email campaigns
+- **Smart Lead Selection**: Select specific leads from large CSV files (e.g., 200 from 10,000)
+  - Individual lead selection with checkboxes
+  - Select all/deselect all functionality
+  - Search and filter leads by any column
+  - Bulk remove selected leads
+  - Real-time lead count updates
 - **Image Support**: Add images to email bodies (stored in AWS S3)
 - **Template Variables**: Use dynamic placeholders (e.g., `{{name}}`, `{{email}}`) for personalized emails
 - **Campaign Preview**: Preview emails with actual lead data before sending
 - **Time Restrictions**: Optional time-based restrictions (8 AM - 6 PM Paris time) for campaign sending
 - **Campaign Status Tracking**: Monitor campaign status (active, paused, completed)
+- **Form Validation**: Real-time validation of required fields with clear error messages
+- **Follow-up Emails**: Configure follow-up templates with customizable delays
 
 ### Domain Management
 
@@ -51,6 +59,12 @@ A comprehensive email campaign management platform built with Next.js that enabl
 - **Charts**: Recharts
 - **Notifications**: React Hot Toast
 - **CSV Parsing**: PapaParse
+- **Custom UI Components**: Built-in reusable component library
+  - Custom Checkbox (with indeterminate state)
+  - Custom Dropdown (with search-like animations)
+  - Custom Input (with icons and error states)
+  - Custom DatePicker (fully custom calendar)
+  - Custom TimePicker (15-minute intervals)
 
 ## 📋 Prerequisites
 
@@ -98,6 +112,7 @@ Before you begin, ensure you have the following installed:
    # Optional: Webhook Configuration
    NEXT_PUBLIC_API_URL=http://localhost:3001/api
    NEXT_PUBLIC_USE_WEBHOOK=false
+   NEXT_PUBLIC_GMAIL_SETUP_WEBHOOK=https://n8n.isra-land.com/webhook/2e5ec21d-0a5e-4a14-af15-8881a0ac88e5
    ```
 
 4. **Run the development server**
@@ -121,21 +136,41 @@ mail-app/
 ├── app/
 │   ├── api/                    # API routes
 │   │   ├── campaigns/          # Campaign CRUD operations
+│   │   │   ├── [id]/          # Individual campaign operations
+│   │   │   │   ├── logs/      # Campaign logs
+│   │   │   │   └── start/     # Start campaign
 │   │   ├── dashboard/         # Dashboard metrics
 │   │   ├── domains/           # Domain management
 │   │   ├── upload/            # S3 file upload
 │   │   ├── s3-presigned-url/  # S3 presigned URL generation
 │   │   └── unsubscribers/     # Unsubscriber management
 │   ├── campaigns/             # Campaign pages
+│   ├── Dashbord/              # Dashboard page
 │   ├── domains/               # Domain pages
 │   ├── unsubscribers/         # Unsubscriber pages
 │   ├── src/
 │   │   ├── components/        # React components
+│   │   │   ├── ui/           # Custom reusable UI components
+│   │   │   │   ├── Checkbox.tsx
+│   │   │   │   ├── Dropdown.tsx
+│   │   │   │   ├── Input.tsx
+│   │   │   │   ├── DatePicker.tsx
+│   │   │   │   ├── TimePicker.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   └── README.md
+│   │   │   ├── CreateCampaignModal.tsx
+│   │   │   ├── EditCampaignModal.tsx
+│   │   │   ├── CampaignDetailsModal.tsx
+│   │   │   ├── LogsModal.tsx
+│   │   │   ├── PreviewModal.tsx
+│   │   │   └── ... (other modals)
 │   │   ├── pages/             # Page components
 │   │   ├── types/             # TypeScript types
 │   │   └── utils/             # Utility functions
 │   └── layout.tsx             # Root layout
 ├── public/                    # Static assets
+├── docker-compose.yml         # Docker configuration
+├── Dockerfile                 # Docker image definition
 ├── package.json
 └── README.md
 ```
@@ -145,11 +180,18 @@ mail-app/
 ### Campaign Creation
 
 1. Upload a CSV file with lead data (name, email, company, etc.)
-2. Create email templates with dynamic placeholders
-3. Upload images for email bodies (automatically stored in S3)
-4. Configure campaign settings (domain, subject, start date/time)
-5. Preview emails with actual lead data
-6. Save and manage campaigns
+2. **Select Specific Leads**:
+   - Search and filter through thousands of leads
+   - Select individual leads or use "Select All"
+   - Bulk remove unwanted leads
+   - Preview selected lead count in real-time
+3. Create email templates with dynamic placeholders
+4. Upload images for email bodies (automatically stored in S3)
+5. Configure campaign settings (domain, subject, start date/time)
+6. Set up follow-up emails with custom delays
+7. Preview emails with actual lead data
+8. **Form Validation**: All required fields validated before saving
+9. Save and manage campaigns
 
 ### Time Restrictions
 
@@ -171,18 +213,57 @@ mail-app/
 - Webhook responses are displayed with detailed error messages
 - Supports custom webhook endpoints for email delivery automation
 
+### Custom UI Component Library
+
+Built from scratch with a consistent design system:
+
+- **Design System**: Purple-to-pink gradient theme (#9333EA → #DB2777)
+- **Checkbox Component**:
+  - Multiple variants (primary, secondary, success, danger)
+  - Three sizes (sm, md, lg)
+  - Indeterminate state support for "select all"
+  - Gradient backgrounds on selection
+- **Dropdown Component**:
+  - Searchable options
+  - Icon support
+  - Disabled option handling
+  - SlideDown animation
+- **Input Component**:
+  - Left/right icon slots
+  - Error state handling with validation messages
+  - Helper text support
+  - Multiple variants (default, outlined, filled)
+- **DatePicker Component**:
+  - Fully custom calendar (no browser defaults)
+  - Month/year navigation
+  - Min/max date constraints
+  - Visual selection highlighting
+- **TimePicker Component**:
+  - 15-minute interval selection
+  - 12-hour format display
+  - Scrollable time list
+  - Auto-scroll to selected time
+
+All components are:
+
+- ✅ Fully typed with TypeScript
+- ✅ Accessible and keyboard-navigable
+- ✅ Responsive and mobile-friendly
+- ✅ Documented in `/app/src/components/ui/README.md`
+
 ## 🔐 Environment Variables
 
-| Variable                  | Description                      | Required |
-| ------------------------- | -------------------------------- | -------- |
-| `MONGODB_URI`             | MongoDB connection string        | Yes      |
-| `MONGODB_DATABASE`        | MongoDB database name            | Yes      |
-| `S3_BUCKET_NAME`          | AWS S3 bucket name               | Yes      |
-| `AWS_ACCESS_KEY_ID`       | AWS access key                   | Yes      |
-| `AWS_SECRET_ACCESS_KEY`   | AWS secret key                   | Yes      |
-| `AWS_REGION`              | AWS region (default: eu-north-1) | Yes      |
-| `NEXT_PUBLIC_API_URL`     | API base URL                     | No       |
-| `NEXT_PUBLIC_USE_WEBHOOK` | Enable webhook mode              | No       |
+| Variable                          | Description                      | Required |
+| --------------------------------- | -------------------------------- | -------- |
+| `MONGODB_URI`                     | MongoDB connection string        | Yes      |
+| `MONGODB_DATABASE`                | MongoDB database name            | Yes      |
+| `S3_BUCKET_NAME`                  | AWS S3 bucket name               | Yes      |
+| `AWS_ACCESS_KEY_ID`               | AWS access key                   | Yes      |
+| `AWS_SECRET_ACCESS_KEY`           | AWS secret key                   | Yes      |
+| `AWS_REGION`                      | AWS region (default: eu-north-1) | Yes      |
+| `NEXT_PUBLIC_API_URL`             | API base URL                     | No       |
+| `NEXT_PUBLIC_USE_WEBHOOK`         | Enable webhook mode              | No       |
+| `NEXT_PUBLIC_GMAIL_SETUP_WEBHOOK` | n8n webhook for Gmail setup      | No       |
 
 ## 🚀 Deployment
 
@@ -218,11 +299,22 @@ npm start
 ### Creating a Campaign
 
 1. Navigate to **Campaigns** → **Create Campaign**
-2. Upload a CSV file with columns: `name`, `email`, `company`
-3. Write email template: `Hi {{name}}, I noticed you work at {{company}}...`
-4. Upload an image (optional)
-5. Select domain and configure settings
-6. Preview and save
+2. Upload a CSV file with columns: `name`, `email`, `company`, etc.
+3. **Filter and Select Leads**:
+   - Use the search box to filter leads by any column
+   - Select specific leads using checkboxes
+   - Or use "Select All" to select all filtered leads
+   - Remove unwanted leads in bulk
+4. Write email template: `Hi {{name}}, I noticed you work at {{company}}...`
+   - Click placeholder chips to insert dynamic variables
+   - Available placeholders automatically detected from CSV columns
+5. Upload an image (optional) - automatically stored in S3
+6. Select sending domain from dropdown
+7. Configure start date and time using custom pickers
+8. Set up follow-up emails (optional)
+9. Preview emails with actual lead data
+10. Submit form (validation ensures all required fields are filled)
+11. Save and launch campaign
 
 ### Managing Domains
 
@@ -244,18 +336,39 @@ npm start
 - Verify AWS credentials are correct
 - Check S3 bucket permissions
 - Ensure bucket exists in the specified region
+- Verify bucket has folders: `private/images/` and `private/csv/`
 
 ### MongoDB Connection Issues
 
 - Verify connection string format
 - Check network access and firewall settings
 - Ensure database name is correct
+- Test connection using MongoDB Compass
 
 ### Time Restriction Not Working
 
 - Clear browser localStorage
 - Check browser timezone settings
 - Verify Paris timezone is correctly displayed
+
+### Form Validation Issues
+
+- Ensure all required fields are filled:
+  - Campaign Name
+  - Sending Domain
+  - Email Subject
+  - Email Template
+  - CSV file with at least one lead
+- Check browser console for detailed error messages
+- Validation errors will appear in red below each field
+
+### CSV Upload Issues
+
+- Ensure CSV has an "Email" column (case-insensitive)
+- Email column will be automatically normalized to "Email"
+- CSV should be UTF-8 encoded
+- Maximum file size: Check browser console for limits
+- Supported columns: Any custom columns become available as placeholders
 
 ## 📄 License
 
@@ -268,6 +381,27 @@ This is a private project. For issues or questions, please contact the developme
 ## 📞 Support
 
 For support and questions, please reach out to the development team.
+
+## 🎨 Design System
+
+The application follows a consistent design system:
+
+- **Color Scheme**: Purple-to-pink gradient (#9333EA → #DB2777)
+- **Border Radius**: Rounded-xl (12px) for cards and modals
+- **Border Width**: 2px for interactive elements
+- **Transitions**: 200ms for smooth animations
+- **Typography**: System fonts with clear hierarchy
+- **Spacing**: Consistent padding and margins using Tailwind's spacing scale
+
+## 🔄 Recent Updates
+
+- ✅ Custom UI component library (Checkbox, Dropdown, Input, DatePicker, TimePicker)
+- ✅ Lead selection and filtering system for CSV imports
+- ✅ Bulk operations (select all, remove selected)
+- ✅ Form validation with real-time error feedback
+- ✅ Improved CSV table editing with better input fields
+- ✅ No browser default inputs - fully custom date/time pickers
+- ✅ Consistent error handling across all forms
 
 ---
 

@@ -21,13 +21,12 @@ import { Domain } from "../types";
 import toast from "react-hot-toast";
 import EditDomainModal from "../components/EditDomainModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import CreateDomainModal from "../components/CreateDomainModal";
 
 export default function DomainsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddDomain, setShowAddDomain] = useState(false);
-  const [newDomain, setNewDomain] = useState("");
-  const [connectingGmail, setConnectingGmail] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -50,40 +49,6 @@ export default function DomainsPage() {
       console.error(error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleConnectGmail = async () => {
-    try {
-      setConnectingGmail(true);
-      // In real app, this would redirect to OAuth flow
-      const response = await domainApi.connectGmail();
-      // Open OAuth window
-      window.open(response.authUrl, "_blank", "width=600,height=700");
-      toast.success("Opening Gmail authentication...");
-    } catch (error) {
-      toast.error("Failed to connect Gmail account");
-      console.error(error);
-    } finally {
-      setConnectingGmail(false);
-    }
-  };
-
-  const handleAddCustomDomain = async () => {
-    if (!newDomain.trim()) {
-      toast.error("Please enter a domain name");
-      return;
-    }
-
-    try {
-      await domainApi.addCustom(newDomain);
-      toast.success("Domain added successfully");
-      setNewDomain("");
-      setShowAddDomain(false);
-      loadDomains();
-    } catch (error) {
-      toast.error("Failed to add domain");
-      console.error(error);
     }
   };
 
@@ -198,19 +163,11 @@ export default function DomainsPage() {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => setShowAddDomain(!showAddDomain)}
-              className="flex items-center px-5 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md transform hover:scale-105"
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add Domain
-            </button>
-            <button
-              onClick={handleConnectGmail}
-              disabled={connectingGmail}
-              className="flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
-            >
-              <Mail className="w-5 h-5 mr-2" />
-              {connectingGmail ? "Connecting..." : "Connect Gmail"}
             </button>
           </div>
         </div>
@@ -299,48 +256,6 @@ export default function DomainsPage() {
         </div>
       </div>
 
-      {/* Add Custom Domain Form */}
-      {showAddDomain && (
-        <div className="bg-white rounded-xl shadow-sm border-2 border-blue-200 p-6 animate-slideDown">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Plus className="w-5 h-5 text-blue-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              Add Custom Domain
-            </h2>
-          </div>
-          <div className="flex space-x-3">
-            <input
-              type="text"
-              value={newDomain}
-              onChange={(e) => setNewDomain(e.target.value)}
-              placeholder="example.com"
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
-            />
-            <button
-              onClick={handleAddCustomDomain}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium"
-            >
-              Add Domain
-            </button>
-            <button
-              onClick={() => {
-                setShowAddDomain(false);
-                setNewDomain("");
-              }}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="mt-3 text-xs text-gray-500">
-            💡 Make sure to configure DNS records (SPF, DKIM, DMARC) for your
-            custom domain
-          </p>
-        </div>
-      )}
-
       {/* Domains List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
@@ -371,15 +286,8 @@ export default function DomainsPage() {
             </p>
             <div className="mt-6 flex items-center justify-center gap-3">
               <button
-                onClick={handleConnectGmail}
+                onClick={() => setShowCreateModal(true)}
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                Connect Gmail
-              </button>
-              <button
-                onClick={() => setShowAddDomain(true)}
-                className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Domain
@@ -523,6 +431,13 @@ export default function DomainsPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Domain Modal */}
+      <CreateDomainModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={loadDomains}
+      />
 
       {/* Edit Domain Modal */}
       <EditDomainModal
