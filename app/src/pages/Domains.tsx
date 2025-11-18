@@ -236,7 +236,7 @@ export default function DomainsPage() {
                 Active Domains
               </p>
               <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                {domains.filter(d => d.status === 'connected').length}
+                {domains.filter((d) => d.status === "connected").length}
               </p>
               <p className="mt-2 text-sm text-gray-500 flex items-center">
                 <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
@@ -256,7 +256,7 @@ export default function DomainsPage() {
                 Gmail Accounts
               </p>
               <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                {domains.filter(d => d.type === 'gmail').length}
+                {domains.filter((d) => d.type === "gmail").length}
               </p>
               <p className="mt-2 text-sm text-gray-500 flex items-center">
                 <Mail className="w-3 h-3 mr-1 text-purple-600" />
@@ -326,7 +326,8 @@ export default function DomainsPage() {
             </button>
           </div>
           <p className="mt-3 text-xs text-gray-500">
-            💡 Make sure to configure DNS records (SPF, DKIM, DMARC) for your custom domain
+            💡 Make sure to configure DNS records (SPF, DKIM, DMARC) for your
+            custom domain
           </p>
         </div>
       )}
@@ -338,8 +339,14 @@ export default function DomainsPage() {
             <div className="animate-pulse">
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div
+                  className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
               </div>
               <p className="text-gray-500">Loading domains...</p>
             </div>
@@ -347,7 +354,9 @@ export default function DomainsPage() {
         ) : domains.length === 0 ? (
           <div className="p-12 text-center">
             <Globe className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 text-lg font-medium">No domains connected yet</p>
+            <p className="text-gray-500 text-lg font-medium">
+              No domains connected yet
+            </p>
             <p className="text-gray-400 text-sm mt-2">
               Connect a Gmail account or add a custom domain to get started
             </p>
@@ -378,11 +387,13 @@ export default function DomainsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1">
                     <div className="flex-shrink-0">
-                      <div className={`p-3 rounded-xl ${
-                        domain.type === "gmail" 
-                          ? "bg-gradient-to-br from-red-50 to-pink-50" 
-                          : "bg-gradient-to-br from-blue-50 to-indigo-50"
-                      }`}>
+                      <div
+                        className={`p-3 rounded-xl ${
+                          domain.type === "gmail"
+                            ? "bg-gradient-to-br from-red-50 to-pink-50"
+                            : "bg-gradient-to-br from-blue-50 to-indigo-50"
+                        }`}
+                      >
                         {domain.type === "gmail" ? (
                           <Mail className="w-8 h-8 text-red-500" />
                         ) : (
@@ -397,13 +408,15 @@ export default function DomainsPage() {
                         </h3>
                         <div className="flex items-center space-x-2">
                           {getStatusIcon(domain.status)}
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            domain.status === 'connected' 
-                              ? 'bg-green-100 text-green-800 border border-green-200' 
-                              : domain.status === 'error'
-                              ? 'bg-red-100 text-red-800 border border-red-200'
-                              : 'bg-gray-100 text-gray-800 border border-gray-200'
-                          }`}>
+                          <span
+                            className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              domain.status === "connected"
+                                ? "bg-green-100 text-green-800 border border-green-200"
+                                : domain.status === "error"
+                                ? "bg-red-100 text-red-800 border border-red-200"
+                                : "bg-gray-100 text-gray-800 border border-gray-200"
+                            }`}
+                          >
                             {getStatusText(domain.status)}
                           </span>
                         </div>
@@ -464,24 +477,38 @@ export default function DomainsPage() {
           <div className="ml-4">
             <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center">
               Domain Management Tips
-              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">Important</span>
+              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">
+                Important
+              </span>
             </h3>
             <ul className="text-sm text-blue-800 space-y-2">
               <li className="flex items-start">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
-                <span>Connect multiple Gmail accounts to balance sending load and avoid rate limits</span>
+                <span>
+                  Connect multiple Gmail accounts to balance sending load and
+                  avoid rate limits
+                </span>
               </li>
               <li className="flex items-start">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
-                <span>Custom domains require DNS configuration (SPF, DKIM, DMARC) for proper email delivery</span>
+                <span>
+                  Custom domains require DNS configuration (SPF, DKIM, DMARC)
+                  for proper email delivery
+                </span>
               </li>
               <li className="flex items-start">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
-                <span>Domains are automatically synced every 5 minutes to ensure up-to-date status</span>
+                <span>
+                  Domains are automatically synced every 5 minutes to ensure
+                  up-to-date status
+                </span>
               </li>
               <li className="flex items-start">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
-                <span>Monitor email limits per domain to avoid rate limiting and maintain deliverability</span>
+                <span>
+                  Monitor email limits per domain to avoid rate limiting and
+                  maintain deliverability
+                </span>
               </li>
             </ul>
           </div>

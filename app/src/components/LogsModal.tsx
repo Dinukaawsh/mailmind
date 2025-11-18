@@ -32,18 +32,18 @@ export default function LogsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] flex flex-col overflow-hidden">
+        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Webhook Logs</h2>
+            <h2 className="text-2xl font-bold text-white">Webhook Logs</h2>
             {campaignName && (
-              <p className="text-sm text-gray-600 mt-1">{campaignName}</p>
+              <p className="text-sm text-indigo-100 mt-1">{campaignName}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
             title="Close"
           >
             <X className="w-6 h-6" />
@@ -69,20 +69,20 @@ export default function LogsModal({
             </div>
           )}
         </div>
-        <div className="border-t border-gray-200 px-6 py-3 bg-gray-50 rounded-b-lg">
+        <div className="border-t-2 border-gray-200 px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm font-semibold text-gray-700">
                 {logs.length} log{logs.length !== 1 ? "s" : ""} received
               </span>
               {isComplete && (
-                <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+                <span className="text-sm font-bold text-green-600 flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full border border-green-200">
                   <span className="w-2 h-2 bg-green-600 rounded-full"></span>
                   {completionMessage || "Processing Complete"}
                 </span>
               )}
               {!isComplete && (
-                <span className="text-sm font-medium text-blue-600 flex items-center gap-1">
+                <span className="text-sm font-bold text-blue-600 flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
                   <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
                   Streaming...
                 </span>
@@ -90,7 +90,7 @@ export default function LogsModal({
             </div>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
             >
               Close
             </button>
