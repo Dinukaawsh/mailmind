@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Domain } from "../types";
 import toast from "react-hot-toast";
+import { Dropdown, DropdownOption, Input } from "./ui";
 
 interface EditDomainModalProps {
   isOpen: boolean;
@@ -54,6 +55,13 @@ export default function EditDomainModal({
     }
   };
 
+  // Status options for dropdown
+  const statusOptions: DropdownOption[] = [
+    { value: "connected", label: "Connected" },
+    { value: "not_connected", label: "Not Connected" },
+    { value: "error", label: "Error" },
+  ];
+
   if (!isOpen || !domain) return null;
 
   return (
@@ -77,102 +85,72 @@ export default function EditDomainModal({
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Domain Name */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Domain Name *
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all disabled:bg-gray-100"
-              required
-              disabled={domain.type === "gmail"}
-            />
-            {domain.type === "gmail" && (
-              <p className="mt-1 text-xs text-gray-500">
-                Gmail domain names cannot be edited
-              </p>
-            )}
-          </div>
+          <Input
+            label="Domain Name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Domain name"
+            required
+            disabled={domain.type === "gmail"}
+            helperText={
+              domain.type === "gmail"
+                ? "Gmail domain names cannot be edited"
+                : undefined
+            }
+            inputSize="lg"
+          />
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status *
-            </label>
-            <select
+            <Dropdown
+              label="Status"
+              options={statusOptions}
               value={formData.status}
-              onChange={(e) =>
+              onChange={(value) =>
                 setFormData({
                   ...formData,
-                  status: e.target.value as
-                    | "connected"
-                    | "not_connected"
-                    | "error",
+                  status: value as "connected" | "not_connected" | "error",
                 })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              placeholder="Select status"
               required
-            >
-              <option value="connected">Connected</option>
-              <option value="not_connected">Not Connected</option>
-              <option value="error">Error</option>
-            </select>
+            />
           </div>
 
           {/* Emails Sent Per Day */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Emails Sent Per Day
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.emailsSentPerDay}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  emailsSentPerDay: parseInt(e.target.value) || 0,
-                })
-              }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            />
-          </div>
+          <Input
+            type="number"
+            label="Emails Sent Per Day"
+            value={formData.emailsSentPerDay.toString()}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                emailsSentPerDay: parseInt(e.target.value) || 0,
+              })
+            }
+            min="0"
+            helperText="Number of emails sent daily from this domain"
+          />
 
           {/* Provider */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Provider
-            </label>
-            <input
-              type="text"
-              value={formData.provider}
-              onChange={(e) =>
-                setFormData({ ...formData, provider: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              placeholder="e.g., Gmail, SendGrid, etc."
-            />
-          </div>
+          <Input
+            type="text"
+            label="Provider"
+            value={formData.provider}
+            onChange={(e) =>
+              setFormData({ ...formData, provider: e.target.value })
+            }
+            placeholder="e.g., Gmail, SendGrid, etc."
+          />
 
           {/* Domain Type (read-only) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Type
-            </label>
-            <input
-              type="text"
-              value={domain.type}
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Domain type cannot be changed
-            </p>
-          </div>
+          <Input
+            type="text"
+            label="Type"
+            value={domain.type}
+            disabled
+            helperText="Domain type cannot be changed"
+          />
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end space-x-3 pt-6 border-t-2 border-gray-200">

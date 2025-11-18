@@ -1,12 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, X, Image as ImageIcon, Eye } from "lucide-react";
+import {
+  Upload,
+  X,
+  Image as ImageIcon,
+  Eye,
+  Trash2,
+  Search,
+} from "lucide-react";
 import { campaignApi, domainApi } from "../utils/api";
 import { Domain } from "../types";
 import toast from "react-hot-toast";
 import Papa from "papaparse";
 import PreviewModal from "./PreviewModal";
+import {
+  Checkbox,
+  Dropdown,
+  DropdownOption,
+  Input,
+  DatePicker,
+  TimePicker,
+} from "./ui";
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -30,10 +45,19 @@ export default function CreateCampaignModal({
     startDate: "",
     startTime: "",
   });
+  const [errors, setErrors] = useState({
+    name: "",
+    domainId: "",
+    subject: "",
+    template: "",
+    csvData: "",
+  });
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvColumns, setCsvColumns] = useState<string[]>([]);
   const [hasValidEmailColumn, setHasValidEmailColumn] = useState(false);
+  const [selectedLeads, setSelectedLeads] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const [domains, setDomains] = useState<Domain[]>([]);
   const [bodyImage, setBodyImage] = useState<string>("");
   const [bodyImageFile, setBodyImageFile] = useState<File | null>(null);
@@ -71,14 +95,74 @@ export default function CreateCampaignModal({
       startDate: "",
       startTime: "",
     });
+    setErrors({
+      name: "",
+      domainId: "",
+      subject: "",
+      template: "",
+      csvData: "",
+    });
     setCsvFile(null);
     setCsvData([]);
     setCsvColumns([]);
     setHasValidEmailColumn(false);
+    setSelectedLeads(new Set());
+    setSearchQuery("");
     setBodyImage("");
     setBodyImageFile(null);
     setBodyImageS3Url("");
     setCsvFileS3Url("");
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors = {
+      name: "",
+      domainId: "",
+      subject: "",
+      template: "",
+      csvData: "",
+    };
+
+    let isValid = true;
+
+    // Validate campaign name
+    if (!formData.name.trim()) {
+      newErrors.name = "Campaign name is required";
+      isValid = false;
+    }
+
+    // Validate domain selection
+    if (!formData.domainId) {
+      newErrors.domainId = "Please select a sending domain";
+      isValid = false;
+    }
+
+    // Validate email subject
+    if (!formData.subject.trim()) {
+      newErrors.subject = "Email subject is required";
+      isValid = false;
+    }
+
+    // Validate email template
+    if (!formData.template.trim()) {
+      newErrors.template = "Email template is required";
+      isValid = false;
+    }
+
+    // Validate CSV data
+    if (csvData.length === 0) {
+      newErrors.csvData = "Please upload a CSV file with leads";
+      isValid = false;
+    } else if (!hasValidEmailColumn) {
+      newErrors.csvData = "CSV file must contain a valid email column";
+      isValid = false;
+    } else if (selectedLeads.size === 0) {
+      newErrors.csvData = "Please select at least one lead";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const findAndNormalizeEmailColumn = (data: any[]): any[] => {
@@ -166,6 +250,11 @@ export default function CreateCampaignModal({
                 normalizedData.length
               } leads from CSV with columns: ${columns.join(", ")}`
             );
+            // Auto-select all leads when uploaded
+            const allIndices = new Set(normalizedData.map((_, idx) => idx));
+            setSelectedLeads(allIndices);
+            // Clear CSV error if exists
+            if (errors.csvData) setErrors({ ...errors, csvData: "" });
           } else {
             setCsvData([]);
             setCsvColumns([]);
@@ -242,6 +331,55 @@ export default function CreateCampaignModal({
     setShowPreviewModal(true);
   };
 
+  // Lead selection functions
+  const toggleLeadSelection = (index: number) => {
+    const newSelected = new Set(selectedLeads);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedLeads(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeads.size === filteredCsvData.length) {
+      setSelectedLeads(new Set());
+    } else {
+      const allIndices = new Set(
+        filteredCsvData.map((_, idx) => csvData.findIndex((lead) => lead === _))
+      );
+      setSelectedLeads(allIndices);
+    }
+  };
+
+  const removeSelectedLeads = () => {
+    const remainingLeads = csvData.filter((_, idx) => !selectedLeads.has(idx));
+    setCsvData(remainingLeads);
+    setSelectedLeads(new Set());
+    toast.success(
+      `Removed ${selectedLeads.size} lead(s). ${remainingLeads.length} remaining.`
+    );
+  };
+
+  // Filter CSV data based on search query
+  const filteredCsvData = csvData.filter((lead) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    return Object.values(lead).some((value) =>
+      String(value).toLowerCase().includes(query)
+    );
+  });
+
+  // Convert domains to dropdown options
+  const domainOptions: DropdownOption[] = domains
+    .filter((d) => d.status === "connected")
+    .map((domain) => ({
+      value: domain.id,
+      label: `${domain.name} (${domain.type})`,
+    }));
+
   const uploadFileToS3 = async (
     file: File,
     fileType: "image" | "csv"
@@ -267,19 +405,9 @@ export default function CreateCampaignModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.name ||
-      !formData.domainId ||
-      !formData.subject ||
-      !formData.template ||
-      csvData.length === 0 ||
-      !hasValidEmailColumn
-    ) {
-      if (!hasValidEmailColumn) {
-        toast.error("CSV file must contain a valid email column");
-      } else {
-        toast.error("Please fill in all required fields");
-      }
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields correctly");
       return;
     }
 
@@ -300,8 +428,13 @@ export default function CreateCampaignModal({
         toast.success("CSV file uploaded successfully", { id: "upload-csv" });
       }
 
+      // Only include selected leads
+      const selectedCsvData = csvData.filter((_, idx) =>
+        selectedLeads.has(idx)
+      );
+
       // Ensure email column is normalized to "Email" before sending to webhook
-      const normalizedCsvData = findAndNormalizeEmailColumn(csvData);
+      const normalizedCsvData = findAndNormalizeEmailColumn(selectedCsvData);
 
       const campaignData = {
         name: formData.name,
@@ -319,7 +452,9 @@ export default function CreateCampaignModal({
       };
 
       await campaignApi.create(campaignData as any);
-      toast.success("Campaign created successfully!");
+      toast.success(
+        `Campaign created successfully with ${selectedLeads.size} lead(s)!`
+      );
       resetForm();
       onClose();
       if (onSuccess) {
@@ -366,28 +501,31 @@ export default function CreateCampaignModal({
           >
             <div className="space-y-6">
               {/* Campaign Name */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Campaign Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 transition-all"
-                  placeholder="e.g., Q4 Product Launch"
-                  required
-                />
-              </div>
+              <Input
+                label="Campaign Name"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  if (errors.name) setErrors({ ...errors, name: "" });
+                }}
+                placeholder="e.g., Q4 Product Launch"
+                required
+                inputSize="lg"
+                error={errors.name}
+              />
 
               {/* CSV Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Upload Leads CSV *
                 </label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                <div
+                  className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors ${
+                    errors.csvData
+                      ? "border-red-500"
+                      : "border-gray-300 hover:border-blue-400"
+                  }`}
+                >
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="flex text-sm text-gray-600">
@@ -405,11 +543,17 @@ export default function CreateCampaignModal({
                     <p className="text-xs text-gray-500">CSV up to 10MB</p>
                   </div>
                 </div>
+                {errors.csvData && (
+                  <p className="mt-1.5 text-sm text-red-600">
+                    {errors.csvData}
+                  </p>
+                )}
                 {csvFile && (
                   <div className="mt-2 space-y-2">
                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                       <span className="text-sm text-gray-700">
-                        {csvFile.name} ({csvData.length} leads)
+                        {csvFile.name} ({csvData.length} total,{" "}
+                        {selectedLeads.size} selected)
                       </span>
                       <button
                         type="button"
@@ -418,6 +562,8 @@ export default function CreateCampaignModal({
                           setCsvData([]);
                           setCsvColumns([]);
                           setHasValidEmailColumn(false);
+                          setSelectedLeads(new Set());
+                          setSearchQuery("");
                         }}
                         className="text-red-600 hover:text-red-800"
                       >
@@ -451,52 +597,133 @@ export default function CreateCampaignModal({
                 {/* Leads Preview Table */}
                 {csvData.length > 0 && (
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Leads ({csvData.length} total)
-                    </label>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Leads Preview ({selectedLeads.size} of {csvData.length}{" "}
+                        selected)
+                      </label>
+                      {selectedLeads.size > 0 && (
+                        <button
+                          type="button"
+                          onClick={removeSelectedLeads}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remove Selected ({selectedLeads.size})
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="mb-3">
+                      <Input
+                        type="text"
+                        placeholder="Search leads..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        leftIcon={<Search className="w-4 h-4" />}
+                        helperText={
+                          searchQuery
+                            ? `Showing ${filteredCsvData.length} of ${csvData.length} leads`
+                            : undefined
+                        }
+                        inputSize="sm"
+                      />
+                    </div>
+
                     <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
                       <div className="overflow-x-auto max-h-96 overflow-y-auto">
                         <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg">
-                          <thead className="bg-gray-100 sticky top-0">
+                          <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
+                              <th className="px-4 py-3 text-left bg-gray-100">
+                                <Checkbox
+                                  checked={
+                                    selectedLeads.size ===
+                                      filteredCsvData.length &&
+                                    filteredCsvData.length > 0
+                                  }
+                                  onChange={toggleSelectAll}
+                                  indeterminate={
+                                    selectedLeads.size > 0 &&
+                                    selectedLeads.size < filteredCsvData.length
+                                  }
+                                  size="md"
+                                />
+                              </th>
                               {Object.keys(csvData[0] || {}).map((key) => (
                                 <th
                                   key={key}
-                                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
+                                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-100"
                                 >
                                   {key}
                                 </th>
                               ))}
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-100">
                                 Actions
                               </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {csvData.map((lead, index) => (
-                              <tr key={index} className="hover:bg-gray-50">
-                                {Object.entries(lead).map(
-                                  ([key, value], valueIndex) => (
-                                    <td
-                                      key={valueIndex}
-                                      className="px-4 py-3 whitespace-nowrap text-sm text-gray-900"
-                                    >
-                                      {String(value || "-")}
-                                    </td>
-                                  )
-                                )}
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <button
-                                    type="button"
-                                    onClick={() => handlePreview(lead)}
-                                    className="text-blue-600 hover:text-blue-800"
-                                    title="Preview email for this lead"
+                            {filteredCsvData.length > 0 ? (
+                              filteredCsvData.map((lead, displayIndex) => {
+                                const actualIndex = csvData.findIndex(
+                                  (item) => item === lead
+                                );
+                                const isSelected =
+                                  selectedLeads.has(actualIndex);
+
+                                return (
+                                  <tr
+                                    key={actualIndex}
+                                    className={`hover:bg-gray-50 transition-colors ${
+                                      isSelected ? "bg-purple-50" : ""
+                                    }`}
                                   >
-                                    <Eye className="w-4 h-4" />
-                                  </button>
+                                    <td className="px-4 py-3">
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onChange={() =>
+                                          toggleLeadSelection(actualIndex)
+                                        }
+                                        size="md"
+                                      />
+                                    </td>
+                                    {Object.entries(lead).map(
+                                      ([key, value], valueIndex) => (
+                                        <td
+                                          key={valueIndex}
+                                          className="px-4 py-3 whitespace-nowrap text-sm text-gray-900"
+                                        >
+                                          {String(value || "-")}
+                                        </td>
+                                      )
+                                    )}
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                      <button
+                                        type="button"
+                                        onClick={() => handlePreview(lead)}
+                                        className="text-blue-600 hover:text-blue-800"
+                                        title="Preview email for this lead"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan={
+                                    Object.keys(csvData[0] || {}).length + 2
+                                  }
+                                  className="px-4 py-8 text-center text-sm text-gray-500"
+                                >
+                                  No leads found matching "{searchQuery}"
                                 </td>
                               </tr>
-                            ))}
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -507,44 +734,32 @@ export default function CreateCampaignModal({
 
               {/* Domain Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sending Domain *
-                </label>
-                <select
+                <Dropdown
+                  label="Sending Domain"
+                  options={domainOptions}
                   value={formData.domainId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, domainId: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                  onChange={(value) => {
+                    setFormData({ ...formData, domainId: value });
+                    if (errors.domainId) setErrors({ ...errors, domainId: "" });
+                  }}
+                  placeholder="Select a domain"
                   required
-                >
-                  <option value="">Select a domain</option>
-                  {domains
-                    .filter((d) => d.status === "connected")
-                    .map((domain) => (
-                      <option key={domain.id} value={domain.id}>
-                        {domain.name} ({domain.type})
-                      </option>
-                    ))}
-                </select>
+                  error={errors.domainId}
+                />
               </div>
 
               {/* Email Subject */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Subject *
-                </label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) =>
-                    setFormData({ ...formData, subject: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                  placeholder="e.g., Exciting Opportunity for Your Business"
-                  required
-                />
-              </div>
+              <Input
+                label="Email Subject"
+                value={formData.subject}
+                onChange={(e) => {
+                  setFormData({ ...formData, subject: e.target.value });
+                  if (errors.subject) setErrors({ ...errors, subject: "" });
+                }}
+                placeholder="e.g., Exciting Opportunity for Your Business"
+                required
+                error={errors.subject}
+              />
 
               {/* Email Template */}
               <div>
@@ -553,14 +768,24 @@ export default function CreateCampaignModal({
                 </label>
                 <textarea
                   value={formData.template}
-                  onChange={(e) =>
-                    setFormData({ ...formData, template: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, template: e.target.value });
+                    if (errors.template) setErrors({ ...errors, template: "" });
+                  }}
                   rows={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm text-gray-900"
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:ring-2 font-mono text-sm text-gray-900 placeholder-gray-400 outline-none transition-all ${
+                    errors.template
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300 focus:ring-purple-500 focus:border-purple-500"
+                  }`}
                   placeholder="Hi {{name}},\n\nI noticed you work at {{company}}...\n\nBest regards,\n[Your Name]"
                   required
                 />
+                {errors.template && (
+                  <p className="mt-1.5 text-sm text-red-600">
+                    {errors.template}
+                  </p>
+                )}
                 <div className="mt-2 space-y-2">
                   {csvColumns.length > 0 ? (
                     <div>
@@ -644,32 +869,22 @@ export default function CreateCampaignModal({
 
               {/* Schedule */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startDate: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startTime: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                  />
-                </div>
+                <DatePicker
+                  label="Start Date"
+                  value={formData.startDate}
+                  onChange={(value) =>
+                    setFormData({ ...formData, startDate: value })
+                  }
+                  helperText="When to start the campaign"
+                />
+                <TimePicker
+                  label="Start Time"
+                  value={formData.startTime}
+                  onChange={(value) =>
+                    setFormData({ ...formData, startTime: value })
+                  }
+                  helperText="Time to send emails"
+                />
               </div>
             </div>
 

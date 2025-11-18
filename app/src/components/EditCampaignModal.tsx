@@ -7,6 +7,7 @@ import Papa from "papaparse";
 import toast from "react-hot-toast";
 import RemoveLeadsConfirmModal from "./RemoveLeadsConfirmModal";
 import RemoveLeadConfirmModal from "./RemoveLeadConfirmModal";
+import { Dropdown, DropdownOption, Input, DatePicker, TimePicker } from "./ui";
 
 interface EditCampaignModalProps {
   isOpen: boolean;
@@ -59,6 +60,12 @@ export default function EditCampaignModal({
     startDate: campaign.startDate || "",
     startTime: campaign.startTime || "",
   });
+  const [errors, setErrors] = useState({
+    name: "",
+    domainId: "",
+    subject: "",
+    template: "",
+  });
   // Initialize with S3 URL if available, otherwise fallback to bodyImage (for backward compatibility)
   const [bodyImage, setBodyImage] = useState<string>(
     campaign.bodyImageS3Url || campaign.bodyImage || ""
@@ -82,6 +89,12 @@ export default function EditCampaignModal({
         followUpDelay: campaign.followUpDelay || 7,
         startDate: campaign.startDate || "",
         startTime: campaign.startTime || "",
+      });
+      setErrors({
+        name: "",
+        domainId: "",
+        subject: "",
+        template: "",
       });
       // Reset image state from campaign (will be empty if deleted)
       setBodyImage(campaign.bodyImageS3Url || campaign.bodyImage || "");
@@ -300,8 +313,45 @@ export default function EditCampaignModal({
     return data.url;
   };
 
+  const validateForm = (): boolean => {
+    const newErrors = {
+      name: "",
+      domainId: "",
+      subject: "",
+      template: "",
+    };
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Campaign name is required";
+    }
+
+    if (!formData.domainId) {
+      newErrors.domainId = "Please select a domain";
+    }
+
+    if (!formData.subject.trim()) {
+      newErrors.subject = "Subject is required";
+    }
+
+    if (!formData.template.trim()) {
+      newErrors.template = "Email template is required";
+    }
+
+    setErrors(newErrors);
+
+    // Return true if no errors
+    return !Object.values(newErrors).some((error) => error !== "");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form before proceeding
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -349,6 +399,14 @@ export default function EditCampaignModal({
     }
   };
 
+  // Convert domains to dropdown options
+  const domainOptions: DropdownOption[] = domains
+    .filter((d) => d.status === "connected")
+    .map((domain) => ({
+      value: domain.id,
+      label: `${domain.name} (${domain.type})`,
+    }));
+
   if (!isOpen) return null;
 
   return (
@@ -378,60 +436,47 @@ export default function EditCampaignModal({
             className="p-6 space-y-6 overflow-y-auto flex-1"
           >
             {/* Campaign Name */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Campaign Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 transition-all"
-                required
-              />
-            </div>
+            <Input
+              label="Campaign Name"
+              value={formData.name}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                setErrors({ ...errors, name: "" });
+              }}
+              placeholder="Campaign name"
+              required
+              inputSize="lg"
+              error={errors.name}
+            />
 
             {/* Domain Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sending Domain *
-              </label>
-              <select
+              <Dropdown
+                label="Sending Domain"
+                options={domainOptions}
                 value={formData.domainId}
-                onChange={(e) =>
-                  setFormData({ ...formData, domainId: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                onChange={(value) => {
+                  setFormData({ ...formData, domainId: value });
+                  setErrors({ ...errors, domainId: "" });
+                }}
+                placeholder="Select a domain"
                 required
-              >
-                <option value="">Select a domain</option>
-                {domains
-                  .filter((d) => d.status === "connected")
-                  .map((domain) => (
-                    <option key={domain.id} value={domain.id}>
-                      {domain.name} ({domain.type})
-                    </option>
-                  ))}
-              </select>
+                error={errors.domainId}
+              />
             </div>
 
             {/* Email Subject */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Subject *
-              </label>
-              <input
-                type="text"
-                value={formData.subject}
-                onChange={(e) =>
-                  setFormData({ ...formData, subject: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                required
-              />
-            </div>
+            <Input
+              label="Email Subject"
+              value={formData.subject}
+              onChange={(e) => {
+                setFormData({ ...formData, subject: e.target.value });
+                setErrors({ ...errors, subject: "" });
+              }}
+              placeholder="Email subject"
+              required
+              error={errors.subject}
+            />
 
             {/* Email Template */}
             <div>
@@ -440,13 +485,21 @@ export default function EditCampaignModal({
               </label>
               <textarea
                 value={formData.template}
-                onChange={(e) =>
-                  setFormData({ ...formData, template: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, template: e.target.value });
+                  setErrors({ ...errors, template: "" });
+                }}
                 rows={8}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm text-gray-900"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 font-mono text-sm text-gray-900 placeholder-gray-400 outline-none ${
+                  errors.template
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-purple-500 focus:border-transparent"
+                }`}
                 required
               />
+              {errors.template && (
+                <p className="text-red-500 text-sm mt-1">{errors.template}</p>
+              )}
               <div className="mt-2 space-y-2">
                 {csvColumns.length > 0 ? (
                   <div>
@@ -649,32 +702,22 @@ export default function EditCampaignModal({
 
             {/* Schedule */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                />
-              </div>
+              <DatePicker
+                label="Start Date"
+                value={formData.startDate}
+                onChange={(value) =>
+                  setFormData({ ...formData, startDate: value })
+                }
+                helperText="When to start the campaign"
+              />
+              <TimePicker
+                label="Start Time"
+                value={formData.startTime}
+                onChange={(value) =>
+                  setFormData({ ...formData, startTime: value })
+                }
+                helperText="Time to send emails"
+              />
             </div>
 
             {/* Leads Section */}
@@ -686,17 +729,17 @@ export default function EditCampaignModal({
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
                   <div className="overflow-x-auto max-h-96 overflow-y-auto">
                     <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg">
-                      <thead className="bg-gray-100 sticky top-0">
+                      <thead className="bg-gray-100 sticky top-0 z-10">
                         <tr>
                           {Object.keys(csvData[0] || {}).map((key) => (
                             <th
                               key={key}
-                              className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-100 min-w-[200px]"
                             >
                               {key}
                             </th>
                           ))}
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-100 sticky right-0">
                             Actions
                           </th>
                         </tr>
@@ -706,10 +749,7 @@ export default function EditCampaignModal({
                           <tr key={index} className="hover:bg-gray-50">
                             {Object.entries(lead).map(
                               ([key, value], valueIndex) => (
-                                <td
-                                  key={valueIndex}
-                                  className="px-4 py-2 whitespace-nowrap"
-                                >
+                                <td key={valueIndex} className="px-3 py-3">
                                   <input
                                     type="text"
                                     value={String(value || "")}
@@ -721,12 +761,13 @@ export default function EditCampaignModal({
                                       };
                                       setCsvData(updatedData);
                                     }}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                    className="w-full min-w-[180px] px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 placeholder-gray-400 outline-none transition-all"
+                                    placeholder={`Enter ${key.toLowerCase()}`}
                                   />
                                 </td>
                               )
                             )}
-                            <td className="px-4 py-2 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap sticky right-0 bg-white">
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
@@ -738,7 +779,7 @@ export default function EditCampaignModal({
                                       bodyImage
                                     )
                                   }
-                                  className="text-blue-600 hover:text-blue-800"
+                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
                                   title="Preview email for this lead"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -746,7 +787,7 @@ export default function EditCampaignModal({
                                 <button
                                   type="button"
                                   onClick={() => onRemoveLead(index)}
-                                  className="text-red-600 hover:text-red-800"
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                                   title="Remove this lead"
                                 >
                                   <X className="w-4 h-4" />
