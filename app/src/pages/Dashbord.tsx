@@ -250,13 +250,20 @@ export default function Dashboard() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
-            <p className="mt-2 text-gray-600 flex items-center">
-              <Activity className="w-4 h-4 mr-2" />
-              Real-time overview of your email outreach campaigns
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+                <Mail className="w-8 h-8 text-purple-600" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Dashboard
+                </h1>
+                <p className="mt-1 text-gray-600 flex items-center">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Real-time overview of your email outreach campaigns
+                </p>
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <Clock className="w-4 h-4" />

@@ -82,12 +82,18 @@ export default function CampaignDetailsModal({
   if (!isOpen || !campaign) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-opacity-50 backdrop-blur-md"
+        onClick={onClose}
+      ></div>
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">{campaign.name}</h2>
-            <p className="text-purple-100 text-sm mt-1">Campaign Details & Leads</p>
+            <p className="text-purple-100 text-sm mt-1">
+              Campaign Details & Leads
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -161,13 +167,17 @@ export default function CampaignDetailsModal({
             </h3>
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="bg-white rounded-lg p-3 shadow-sm">
-                <dt className="text-xs font-bold text-gray-500 uppercase">Subject</dt>
+                <dt className="text-xs font-bold text-gray-500 uppercase">
+                  Subject
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 font-semibold">
                   {campaign.subject || "N/A"}
                 </dd>
               </div>
               <div className="bg-white rounded-lg p-3 shadow-sm">
-                <dt className="text-xs font-bold text-gray-500 uppercase">Status</dt>
+                <dt className="text-xs font-bold text-gray-500 uppercase">
+                  Status
+                </dt>
                 <dd className="mt-1">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200 capitalize">
                     {campaign.status}
@@ -175,7 +185,9 @@ export default function CampaignDetailsModal({
                 </dd>
               </div>
               <div className="bg-white rounded-lg p-3 shadow-sm">
-                <dt className="text-xs font-bold text-gray-500 uppercase">Created</dt>
+                <dt className="text-xs font-bold text-gray-500 uppercase">
+                  Created
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 font-semibold">
                   {new Date(campaign.createdAt).toLocaleDateString()}
                 </dd>
@@ -232,7 +244,10 @@ export default function CampaignDetailsModal({
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {campaign.csvData.map((lead, index) => (
-                      <tr key={index} className="hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 transition-all duration-200">
+                      <tr
+                        key={index}
+                        className="hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 transition-all duration-200"
+                      >
                         {Object.values(lead).map((value: any, valueIndex) => (
                           <td
                             key={valueIndex}
@@ -255,7 +270,9 @@ export default function CampaignDetailsModal({
                             title="Preview email for this lead"
                           >
                             <Eye className="w-4 h-4 mr-1" />
-                            <span className="text-xs font-semibold">Preview</span>
+                            <span className="text-xs font-semibold">
+                              Preview
+                            </span>
                           </button>
                         </td>
                       </tr>

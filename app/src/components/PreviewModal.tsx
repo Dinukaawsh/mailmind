@@ -24,12 +24,18 @@ export default function PreviewModal({
   if (!isOpen || !lead) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-opacity-50 backdrop-blur-md"
+        onClick={onClose}
+      ></div>
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Email Preview</h2>
-            <p className="text-sm text-blue-100 mt-1">Personalized email for this lead</p>
+            <p className="text-sm text-blue-100 mt-1">
+              Personalized email for this lead
+            </p>
           </div>
           <button
             onClick={onClose}

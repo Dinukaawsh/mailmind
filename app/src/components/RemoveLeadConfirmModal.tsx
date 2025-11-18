@@ -16,8 +16,12 @@ export default function RemoveLeadConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-opacity-50 backdrop-blur-md"
+        onClick={onClose}
+      ></div>
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
         <div className="p-8">
           <div className="flex items-center justify-center w-16 h-16 mx-auto bg-gradient-to-br from-orange-100 to-red-200 rounded-2xl mb-5 shadow-lg">
             <X className="w-8 h-8 text-orange-600" />

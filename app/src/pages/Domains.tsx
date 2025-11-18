@@ -20,6 +20,7 @@ import { domainApi } from "../utils/api";
 import { Domain } from "../types";
 import toast from "react-hot-toast";
 import EditDomainModal from "../components/EditDomainModal";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 
 export default function DomainsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -29,6 +30,8 @@ export default function DomainsPage() {
   const [connectingGmail, setConnectingGmail] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [domainToDelete, setDomainToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadDomains();
@@ -85,17 +88,23 @@ export default function DomainsPage() {
   };
 
   const handleDisconnect = async (id: string) => {
-    if (!confirm("Are you sure you want to disconnect this domain?")) {
-      return;
-    }
+    setDomainToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDisconnect = async () => {
+    if (!domainToDelete) return;
 
     try {
-      await domainApi.disconnect(id);
+      await domainApi.disconnect(domainToDelete);
       toast.success("Domain disconnected");
       loadDomains();
     } catch (error) {
       toast.error("Failed to disconnect domain");
       console.error(error);
+    } finally {
+      setShowDeleteModal(false);
+      setDomainToDelete(null);
     }
   };
 
@@ -524,6 +533,18 @@ export default function DomainsPage() {
         }}
         domain={selectedDomain}
         onUpdate={handleUpdateDomain}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDomainToDelete(null);
+        }}
+        onConfirm={confirmDisconnect}
+        title="Disconnect Domain"
+        message="Are you sure you want to disconnect this domain? This will remove the domain from your account and you won't be able to send emails from it until you reconnect it."
       />
 
       <style jsx>{`
