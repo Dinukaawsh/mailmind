@@ -17,6 +17,17 @@ import {
   UserX,
   Upload,
   Image as ImageIcon,
+  PlayCircle,
+  PauseCircle,
+  CheckCircle,
+  Clock,
+  Activity,
+  TrendingUp,
+  Calendar,
+  Server,
+  Filter,
+  FileText,
+  Users,
 } from "lucide-react";
 import { campaignApi, domainApi } from "../utils/api";
 import { Campaign, Domain } from "../types";
@@ -194,27 +205,90 @@ export default function CampaignsPage() {
   const fetchCampaignLogs = async (campaignId: string) => {
     try {
       const response = await campaignApi.getLogs(campaignId);
+
+      // 🔍 DEBUG: Log the exact API response
+      console.log("📥 API Response for logs:", {
+        campaignId,
+        fullResponse: response,
+        logsArray: response.logs,
+        logsCount: response.logs?.length || 0,
+        isComplete: response.isComplete,
+        completionMessage: response.completionMessage,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+
+      // IMPORTANT: Trust the API's isComplete flag first
+      let isComplete = response.isComplete === true;
+      let completionMessage = response.completionMessage;
+
+      // Log if API says it's complete
+      if (isComplete) {
+        console.log("✅ API reported isComplete=true, stopping stream");
+      }
+
       if (response.logs && response.logs.length > 0) {
+        // 🔍 DEBUG: Log each individual log entry
+        console.log("📋 Individual log entries:");
+        response.logs.forEach((log, index) => {
+          console.log(`  [${index}]:`, log);
+        });
+
         setCampaignLogs((prev) => ({
           ...prev,
           [campaignId]: response.logs,
         }));
+
+        // Check if logs contain completion message
+        // Look through all logs (especially the last few) for completion indicators
+        const logsToCheck = response.logs.slice(-5); // Check last 5 logs
+        const hasCompletionMessage = logsToCheck.some((log) => {
+          // Check if it's a plain text completion message
+          const plainTextComplete =
+            log.includes("✅ Campaign completed successfully!") ||
+            log.includes("Campaign completed successfully") ||
+            log.includes("Duration:");
+
+          // Check if it's a JSON object with completion status
+          // (in case your API sends completion as JSON)
+          let jsonComplete = false;
+          try {
+            const parsed = JSON.parse(log);
+            jsonComplete =
+              parsed.status === "completed" ||
+              parsed.Status === "Completed" ||
+              parsed.isComplete === true ||
+              (parsed.message &&
+                (parsed.message.includes("completed successfully") ||
+                  parsed.message.includes("Campaign completed")));
+          } catch (e) {
+            // Not JSON, skip
+          }
+
+          return plainTextComplete || jsonComplete;
+        });
+
+        if (hasCompletionMessage) {
+          isComplete = true;
+          completionMessage =
+            completionMessage || "Campaign processing completed";
+        }
       }
 
       // Update completion status
-      if (response.isComplete !== undefined) {
-        setCampaignLogsStatus((prev) => ({
-          ...prev,
-          [campaignId]: {
-            isComplete: response.isComplete,
-            completionMessage: response.completionMessage || undefined,
-          },
-        }));
+      setCampaignLogsStatus((prev) => ({
+        ...prev,
+        [campaignId]: {
+          isComplete: isComplete,
+          completionMessage: completionMessage || undefined,
+        },
+      }));
 
-        // Stop polling if complete
-        if (response.isComplete) {
-          stopLogPolling(campaignId);
-        }
+      // Stop polling if complete
+      if (isComplete) {
+        stopLogPolling(campaignId);
+        console.log(
+          `✅ Streaming stopped for campaign ${campaignId} - Campaign completed`
+        );
       }
     } catch (error) {
       // Silently fail - logs might not be available yet
@@ -324,6 +398,14 @@ export default function CampaignsPage() {
       stopLogPolling(campaignId);
 
       const response = await campaignApi.start(campaignId);
+
+      // 🔍 DEBUG: Log the exact webhook response
+      console.log("🚀 Campaign Start Response:", {
+        campaignId,
+        fullResponse: response,
+        webhookResponse: response.webhookResponse,
+        timestamp: new Date().toLocaleTimeString(),
+      });
 
       // Display webhook response details if available
       if (response.webhookResponse) {
@@ -517,258 +599,477 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
-          <p className="mt-2 text-gray-600">
-            Manage and monitor your email campaigns
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Time Restriction Toggle */}
-          <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-4 py-2">
-            <span className="text-sm text-gray-700">
-              Paris Time: {currentParisTime || "Loading..."}
-            </span>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-sm text-gray-700">
-                {timeRestrictionEnabled
-                  ? "8 AM - 6 PM Only"
-                  : "Always Available"}
-              </span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={timeRestrictionEnabled}
-                  onChange={(e) =>
-                    handleTimeRestrictionToggle(e.target.checked)
-                  }
-                  className="sr-only"
-                />
-                <div
-                  className={`w-14 h-7 rounded-full transition-colors ${
-                    timeRestrictionEnabled ? "bg-blue-600" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
-                      timeRestrictionEnabled ? "translate-x-7" : "translate-x-1"
-                    } mt-0.5`}
-                  />
-                </div>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+                <Mail className="w-8 h-8 text-purple-600" />
               </div>
-            </label>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Campaigns
+                </h1>
+                <p className="mt-1 text-gray-600 flex items-center">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Manage and monitor your email campaigns
+                </p>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create Campaign
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Time Restriction Toggle */}
+            <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 px-5 py-3 shadow-sm">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
+                  Paris Time
+                </span>
+                <span className="text-lg font-bold text-blue-600">
+                  {currentParisTime || "Loading..."}
+                </span>
+              </div>
+              <div className="h-10 w-px bg-blue-200"></div>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                    Time Limit
+                  </span>
+                  <span
+                    className={`text-sm font-bold ${
+                      timeRestrictionEnabled
+                        ? "text-green-600"
+                        : "text-orange-600"
+                    }`}
+                  >
+                    {timeRestrictionEnabled ? "8 AM - 6 PM" : "24/7"}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={timeRestrictionEnabled}
+                    onChange={(e) =>
+                      handleTimeRestrictionToggle(e.target.checked)
+                    }
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-14 h-7 rounded-full transition-all duration-300 ${
+                      timeRestrictionEnabled
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                        : "bg-gradient-to-r from-orange-400 to-orange-500"
+                    } shadow-md`}
+                  >
+                    <div
+                      className={`w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform duration-300 ${
+                        timeRestrictionEnabled
+                          ? "translate-x-7"
+                          : "translate-x-1"
+                      } mt-0.5 flex items-center justify-center`}
+                    >
+                      {timeRestrictionEnabled ? (
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                      ) : (
+                        <X className="w-3 h-3 text-orange-600" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Campaign
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search campaigns..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-purple-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Total Campaigns
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {campaigns.length}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></span>
+                All campaigns
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+              <Mail className="w-8 h-8 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-green-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Active
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {campaigns.filter((c) => c.status === "active").length}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <PlayCircle className="w-3 h-3 mr-1 text-green-600" />
+                Running now
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <PlayCircle className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Completed
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {campaigns.filter((c) => c.status === "completed").length}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <CheckCircle className="w-3 h-3 mr-1 text-blue-600" />
+                Finished
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+              <CheckCircle className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-orange-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Total Leads
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {campaigns.reduce(
+                  (sum, c) => sum + (c.csvData?.length || 0),
+                  0
+                )}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <Users className="w-3 h-3 mr-1 text-orange-600" />
+                Contacts loaded
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl">
+              <Users className="w-8 h-8 text-orange-600" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Campaigns Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search campaigns by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+            />
+          </div>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="px-4 py-3 text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="mt-3 text-sm text-gray-600">
+            Found{" "}
+            <span className="font-semibold text-gray-900">
+              {filteredCampaigns.length}
+            </span>{" "}
+            campaign{filteredCampaigns.length !== 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
+
+      {/* Campaigns Grid/List */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">
-            Loading campaigns...
+          <div className="p-12 text-center">
+            <div className="animate-pulse">
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"></div>
+                <div
+                  className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+              <p className="text-gray-500">Loading campaigns...</p>
+            </div>
           </div>
         ) : filteredCampaigns.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            {searchQuery
-              ? "No campaigns found matching your search."
-              : "No campaigns yet. Create your first campaign to get started."}
+          <div className="p-12 text-center">
+            {searchQuery ? (
+              <div>
+                <Search className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 text-lg font-medium">
+                  No campaigns found matching your search
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Try a different search term
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Mail className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 text-lg font-medium">
+                  No campaigns yet
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Create your first campaign to get started
+                </p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="mt-6 inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Campaign
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Campaign Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Domain
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Start Date
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Schedule
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Start Time
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Leads
                   </th>
-                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sent
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Open Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reply Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bounce Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Unsubscribes
-                  </th> */}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCampaigns.map((campaign) => (
-                  <tr key={campaign.id} className="hover:bg-gray-50">
-                    <td
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer hover:text-blue-600"
-                      onClick={() => handleDetailsClick(campaign.id)}
+                {filteredCampaigns.map((campaign) => {
+                  const getStatusIcon = (status: string) => {
+                    switch (status) {
+                      case "active":
+                        return (
+                          <PlayCircle className="w-4 h-4 text-green-500" />
+                        );
+                      case "paused":
+                        return (
+                          <PauseCircle className="w-4 h-4 text-yellow-500" />
+                        );
+                      case "completed":
+                        return (
+                          <CheckCircle className="w-4 h-4 text-blue-500" />
+                        );
+                      default:
+                        return <Clock className="w-4 h-4 text-gray-500" />;
+                    }
+                  };
+
+                  return (
+                    <tr
+                      key={campaign.id}
+                      className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200"
                     >
-                      {campaign.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {domains.find((d) => d.id === campaign.domainId)?.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.startDate
-                        ? new Date(campaign.startDate).toLocaleDateString()
-                        : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.startTime || "-"}
-                    </td>
-                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.sentCount.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.openRate.toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.replyRate.toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.bounceRate.toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.unsubscribeCount}
-                    </td> */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                          campaign.status
-                        )}`}
-                      >
-                        {campaign.status.charAt(0).toUpperCase() +
-                          campaign.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div
+                          className="flex items-center cursor-pointer group"
                           onClick={() => handleDetailsClick(campaign.id)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="View Details"
                         >
-                          <Eye className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEditClick(campaign)}
-                          className="text-gray-600 hover:text-gray-800"
-                          title="Edit Campaign"
+                          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg flex items-center justify-center group-hover:from-purple-100 group-hover:to-pink-100 transition-all">
+                            <Mail className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                              {campaign.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Created{" "}
+                              {new Date(
+                                campaign.createdAt
+                              ).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Server className="w-4 h-4 text-blue-500 mr-2" />
+                          <span className="text-sm text-gray-900 font-medium">
+                            {domains.find((d) => d.id === campaign.domainId)
+                              ?.name || "N/A"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+                            {campaign.startDate
+                              ? new Date(
+                                  campaign.startDate
+                                ).toLocaleDateString()
+                              : "Not scheduled"}
+                          </div>
+                          {campaign.startTime && (
+                            <div className="flex items-center text-xs text-gray-500 mt-1">
+                              <Clock className="w-3 h-3 text-gray-400 mr-1" />
+                              {campaign.startTime}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Users className="w-4 h-4 text-orange-500 mr-2" />
+                          <span className="text-sm font-semibold text-gray-900">
+                            {campaign.csvData?.length || 0}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 text-xs font-bold rounded-full border ${getStatusColor(
+                            campaign.status
+                          )}`}
                         >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          className={`${
-                            isWithinAllowedHours()
-                              ? "text-green-600 hover:text-green-800"
-                              : "text-gray-400 cursor-not-allowed opacity-50"
-                          } transition-colors`}
-                          title={
-                            isWithinAllowedHours()
-                              ? "Launch Campaign"
-                              : `Button only available 8 AM - 6 PM Paris time. Current: ${
-                                  currentParisTime || "Loading..."
-                                }`
-                          }
-                          onClick={() => {
-                            if (isWithinAllowedHours()) {
-                              handleStartCampaign(campaign.id);
-                            } else {
-                              toast.error(
-                                `Campaign can only be sent between 8 AM - 6 PM Paris time. Current time: ${currentParisTime}`
-                              );
+                          {getStatusIcon(campaign.status)}
+                          <span className="ml-1.5">
+                            {campaign.status.charAt(0).toUpperCase() +
+                              campaign.status.slice(1)}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-1">
+                          <button
+                            onClick={() => handleDetailsClick(campaign.id)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
+                            title="View Details"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleEditClick(campaign)}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-all border border-transparent hover:border-purple-200"
+                            title="Edit Campaign"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            className={`p-2 rounded-lg transition-all border border-transparent ${
+                              isWithinAllowedHours()
+                                ? "text-green-600 hover:bg-green-50 hover:border-green-200"
+                                : "text-gray-400 cursor-not-allowed opacity-50"
+                            }`}
+                            title={
+                              isWithinAllowedHours()
+                                ? "Launch Campaign"
+                                : `Available 8 AM - 6 PM Paris time. Current: ${
+                                    currentParisTime || "Loading..."
+                                  }`
                             }
-                          }}
-                          disabled={!isWithinAllowedHours()}
-                        >
-                          <Play className="w-5 h-5" />
-                        </button>
-                        {/* Live/Streaming Logs Button (Purple) - Active streaming logs */}
-                        {campaignLogs[campaign.id] &&
-                          campaignLogs[campaign.id].length > 0 && (
+                            onClick={() => {
+                              if (isWithinAllowedHours()) {
+                                handleStartCampaign(campaign.id);
+                              } else {
+                                toast.error(
+                                  `Campaign can only be sent between 8 AM - 6 PM Paris time. Current time: ${currentParisTime}`
+                                );
+                              }
+                            }}
+                            disabled={!isWithinAllowedHours()}
+                          >
+                            <Play className="w-5 h-5" />
+                          </button>
+                          {/* Live/Streaming Logs Button */}
+                          {campaignLogs[campaign.id] &&
+                            campaignLogs[campaign.id].length > 0 && (
+                              <button
+                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all border border-transparent hover:border-indigo-200 relative"
+                                title="View Live Logs"
+                                onClick={() => {
+                                  setSelectedCampaignForLogs(campaign.id);
+                                  setShowLogsModal(true);
+                                  const status =
+                                    campaignLogsStatus[campaign.id];
+                                  if (
+                                    !status?.isComplete &&
+                                    !pollingIntervals[campaign.id]
+                                  ) {
+                                    startLogPolling(campaign.id);
+                                  }
+                                }}
+                              >
+                                <FileText className="w-5 h-5" />
+                                {!campaignLogsStatus[campaign.id]
+                                  ?.isComplete && (
+                                  <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span>
+                                )}
+                              </button>
+                            )}
+                          {/* Historical Logs Button */}
+                          {campaignsWithHistoricalLogs.has(campaign.id) && (
                             <button
-                              className="text-purple-600 hover:text-purple-800 relative"
-                              title="View Live Logs (Streaming)"
-                              onClick={() => {
-                                setSelectedCampaignForLogs(campaign.id);
-                                setShowLogsModal(true);
-                                // Resume polling if not complete
-                                const status = campaignLogsStatus[campaign.id];
-                                if (
-                                  !status?.isComplete &&
-                                  !pollingIntervals[campaign.id]
-                                ) {
-                                  startLogPolling(campaign.id);
-                                }
-                              }}
+                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all border border-transparent hover:border-amber-200"
+                              title="View Historical Logs"
+                              onClick={() => loadHistoricalLogs(campaign.id)}
                             >
-                              <MessageSquare className="w-5 h-5" />
-                              {!campaignLogsStatus[campaign.id]?.isComplete && (
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
-                              )}
+                              <FileText className="w-5 h-5" />
                             </button>
                           )}
-                        {/* Historical Logs Button (Red) - Past completed logs */}
-                        {campaignsWithHistoricalLogs.has(campaign.id) && (
                           <button
-                            className="text-red-600 hover:text-red-800"
-                            title="View Historical Logs"
-                            onClick={() => loadHistoricalLogs(campaign.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-200"
+                            title="Delete Campaign"
+                            onClick={() => handleDeleteClick(campaign.id)}
                           >
-                            <MessageSquare className="w-5 h-5" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
-                        )}
-                        <button
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete Campaign"
-                          onClick={() => handleDeleteClick(campaign.id)}
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
