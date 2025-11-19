@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, Eye, Mail } from "lucide-react";
 import { Campaign } from "../types";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 
 interface CampaignDetailsModalProps {
   isOpen: boolean;
@@ -26,6 +28,12 @@ export default function CampaignDetailsModal({
   const bodyImageUrl = campaign?.bodyImageS3Url || campaign?.bodyImage;
   const [imageError, setImageError] = useState<boolean>(false);
   const [presignedImageUrl, setPresignedImageUrl] = useState<string>("");
+
+  const formattedTemplate = useMemo(() => {
+    if (!campaign?.template?.trim()) return "";
+    const html = marked.parse(campaign.template);
+    return DOMPurify.sanitize(html as unknown as string);
+  }, [campaign?.template]);
 
   // Fetch presigned URL for S3 images
   useEffect(() => {
@@ -112,8 +120,15 @@ export default function CampaignDetailsModal({
                 </div>
                 Email Template
               </h3>
-              <div className="bg-white rounded-lg p-4 font-mono text-sm whitespace-pre-wrap text-gray-900 shadow-sm border border-gray-200">
-                {campaign.template || "No template set"}
+              <div className="bg-white rounded-lg p-4 text-sm text-gray-900 shadow-sm border border-gray-200 min-h-[140px]">
+                {formattedTemplate ? (
+                  <div
+                    className="space-y-2"
+                    dangerouslySetInnerHTML={{ __html: formattedTemplate }}
+                  />
+                ) : (
+                  <p className="text-gray-400 italic">No template set</p>
+                )}
               </div>
               {bodyImageUrl && (
                 <div className="mt-4">

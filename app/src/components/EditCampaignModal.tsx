@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import RemoveLeadsConfirmModal from "./RemoveLeadsConfirmModal";
 import RemoveLeadConfirmModal from "./RemoveLeadConfirmModal";
 import { Dropdown, DropdownOption, Input, DatePicker, TimePicker } from "./ui";
+import TemplateEditor from "./ui/TemplateEditor";
 
 interface EditCampaignModalProps {
   isOpen: boolean;
@@ -480,66 +481,20 @@ export default function EditCampaignModal({
 
             {/* Email Template */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Template *
-              </label>
-              <textarea
+              <TemplateEditor
+                label="Email Template *"
                 value={formData.template}
-                onChange={(e) => {
-                  setFormData({ ...formData, template: e.target.value });
+                onChange={(value) => {
+                  setFormData({ ...formData, template: value });
                   setErrors({ ...errors, template: "" });
                 }}
-                rows={8}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 font-mono text-sm text-gray-900 placeholder-gray-400 outline-none ${
-                  errors.template
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-purple-500 focus:border-transparent"
-                }`}
+                error={errors.template}
+                csvColumns={csvColumns}
+                helperText="Supports Markdown (bold, underline, lists, links) and CSV placeholders."
                 required
               />
-              {errors.template && (
-                <p className="text-red-500 text-sm mt-1">{errors.template}</p>
-              )}
-              <div className="mt-2 space-y-2">
-                {csvColumns.length > 0 ? (
-                  <div>
-                    <p className="text-xs font-medium text-gray-700 mb-2">
-                      Available Placeholders (from CSV):
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {csvColumns.map((col) => (
-                        <button
-                          key={col}
-                          type="button"
-                          onClick={() => {
-                            const placeholder = `{{${col.toLowerCase()}}}`;
-                            setFormData({
-                              ...formData,
-                              template: formData.template + placeholder,
-                            });
-                          }}
-                          className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-mono cursor-pointer"
-                          title={`Click to insert ${col} placeholder`}
-                        >
-                          {"{{"}
-                          {col.toLowerCase()}
-                          {"}}"}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Click placeholders above to insert them into the template
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Upload a CSV file to see available placeholders. Use format:{" "}
-                    {"{{columnname}}"}
-                  </p>
-                )}
-              </div>
               {/* Body Image Upload */}
-              <div className="mt-3">
+              <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Body Image (Optional)
                 </label>

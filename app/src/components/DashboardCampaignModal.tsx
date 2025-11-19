@@ -119,7 +119,7 @@ export default function DashboardCampaignModal({
         className="absolute inset-0 bg-opacity-50 backdrop-blur-md"
         onClick={onClose}
       ></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-slideUp">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col animate-slideUp">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
           <div className="flex items-center justify-between">
@@ -132,7 +132,7 @@ export default function DashboardCampaignModal({
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
+              className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors hover:text-gray-900"
             >
               <X className="w-6 h-6" />
             </button>
@@ -140,7 +140,7 @@ export default function DashboardCampaignModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="p-6 overflow-y-auto flex-1">
           {/* Status and Date */}
           <div className="flex items-center justify-between mb-6">
             <span

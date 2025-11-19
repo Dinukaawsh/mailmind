@@ -1,6 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { X } from "lucide-react";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 
 interface PreviewModalProps {
   isOpen: boolean;
@@ -22,6 +25,12 @@ export default function PreviewModal({
   replacePlaceholders,
 }: PreviewModalProps) {
   if (!isOpen || !lead) return null;
+
+  const formattedBody = useMemo(() => {
+    if (!previewContent?.trim()) return "";
+    const html = marked.parse(previewContent);
+    return DOMPurify.sanitize(html as unknown as string);
+  }, [previewContent]);
 
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -81,8 +90,17 @@ export default function PreviewModal({
             <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
               Email Body:
             </h3>
-            <div className="bg-white border-2 border-gray-300 rounded-xl p-5 font-mono text-sm whitespace-pre-wrap text-gray-900 shadow-sm">
-              {previewContent}
+            <div className="bg-white border-2 border-gray-300 rounded-xl p-5 text-sm text-gray-900 shadow-sm min-h-[160px]">
+              {formattedBody ? (
+                <div
+                  className="space-y-2"
+                  dangerouslySetInnerHTML={{ __html: formattedBody }}
+                />
+              ) : (
+                <p className="text-gray-400 italic">
+                  No body content provided for this lead.
+                </p>
+              )}
             </div>
             {previewBodyImage && (
               <div className="mt-4">

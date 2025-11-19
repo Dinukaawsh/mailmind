@@ -112,7 +112,7 @@ Before you begin, ensure you have the following installed:
    # Optional: Webhook Configuration
    NEXT_PUBLIC_API_URL=http://localhost:3001/api
    NEXT_PUBLIC_USE_WEBHOOK=false
-   NEXT_PUBLIC_GMAIL_SETUP_WEBHOOK=https://n8n.isra-land.com/webhook/2e5ec21d-0a5e-4a14-af15-8881a0ac88e5
+   NEXT_PUBLIC_GMAIL_SETUP_WEBHOOK=your webhook here
    ```
 
 4. **Run the development server**

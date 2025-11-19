@@ -10,6 +10,16 @@ interface CreateDomainModalProps {
   onSuccess?: () => void;
 }
 
+interface OAuthCredentials {
+  client_id: string;
+  project_id: string;
+  client_secret: string;
+  auth_uri?: string;
+  token_uri?: string;
+  auth_provider_x509_cert_url?: string;
+  redirect_uris?: string[];
+}
+
 export default function CreateDomainModal({
   isOpen,
   onClose,
@@ -20,6 +30,8 @@ export default function CreateDomainModal({
   const [gmailEmail, setGmailEmail] = useState("");
   const [uploadMethod, setUploadMethod] = useState<"file" | "manual">("file");
   const [credentialsFile, setCredentialsFile] = useState<File | null>(null);
+  const [uploadedCredentials, setUploadedCredentials] =
+    useState<OAuthCredentials | null>(null);
   const [manualCredentials, setManualCredentials] = useState({
     client_id: "",
     project_id: "",
@@ -31,6 +43,29 @@ export default function CreateDomainModal({
   const [customDomain, setCustomDomain] = useState("");
 
   if (!isOpen) return null;
+
+  const saveGmailDomain = async (email: string) => {
+    const response = await fetch("/api/domains", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: email,
+        type: "gmail",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const isDuplicate =
+        response.status === 400 && errorData?.error === "Domain already exists";
+
+      if (!isDuplicate) {
+        throw new Error(errorData?.error || "Failed to save Gmail domain");
+      }
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,6 +86,7 @@ export default function CreateDomainModal({
       }
 
       setCredentialsFile(file);
+      setUploadedCredentials(credentials.web);
       toast.success("Credentials file loaded successfully");
     } catch (error) {
       toast.error("Failed to parse credentials file");
@@ -137,6 +173,15 @@ export default function CreateDomainModal({
         toast.success("Gmail account setup initiated");
       }
 
+      try {
+        await saveGmailDomain(gmailEmail.trim());
+      } catch (persistError) {
+        console.error(persistError);
+        toast.error(
+          "Gmail connected, but failed to save domain in dashboard. Please refresh."
+        );
+      }
+
       // Reset and close
       resetForm();
       onClose();
@@ -186,6 +231,7 @@ export default function CreateDomainModal({
   const resetForm = () => {
     setGmailEmail("");
     setCredentialsFile(null);
+    setUploadedCredentials(null);
     setManualCredentials({
       client_id: "",
       project_id: "",
@@ -370,6 +416,55 @@ export default function CreateDomainModal({
                       </p>
                     </div>
                   </div>
+                  {uploadedCredentials && (
+                    <div className="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-2 text-sm text-gray-800">
+                      <div className="font-medium text-gray-900">
+                        Preview of parsed credentials
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <PreviewField
+                          label="Client ID"
+                          value={uploadedCredentials.client_id}
+                        />
+                        <PreviewField
+                          label="Project ID"
+                          value={uploadedCredentials.project_id}
+                        />
+                        <PreviewField
+                          label="Auth URI"
+                          value={
+                            uploadedCredentials.auth_uri ||
+                            "https://accounts.google.com/o/oauth2/auth"
+                          }
+                        />
+                        <PreviewField
+                          label="Token URI"
+                          value={
+                            uploadedCredentials.token_uri ||
+                            "https://oauth2.googleapis.com/token"
+                          }
+                        />
+                        <PreviewField
+                          label="Cert URL"
+                          value={
+                            uploadedCredentials.auth_provider_x509_cert_url ||
+                            "https://www.googleapis.com/oauth2/v1/certs"
+                          }
+                        />
+                        <PreviewField
+                          label="Redirect URIs"
+                          value={
+                            uploadedCredentials.redirect_uris?.join(", ") ||
+                            "https://n8n.isra-land.com/rest/oauth2-credential/callback"
+                          }
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        These values will be sent exactly as shown when you run
+                        the Gmail setup.
+                      </p>
+                    </div>
+                  )}
                   <p className="mt-2 text-xs text-gray-500">
                     💡 Download this file from Google Cloud Console → APIs &
                     Services → Credentials
@@ -514,6 +609,19 @@ export default function CreateDomainModal({
             )}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-0.5 break-words rounded bg-white px-3 py-2 border border-gray-200 text-gray-900 text-sm">
+        {value}
       </div>
     </div>
   );
