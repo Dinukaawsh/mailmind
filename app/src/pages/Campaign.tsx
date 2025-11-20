@@ -30,7 +30,7 @@ import {
   Users,
 } from "lucide-react";
 import { campaignApi, domainApi } from "../utils/api";
-import { Campaign, Domain } from "../types";
+import { Campaign, CampaignReply, Domain } from "../types";
 import toast from "react-hot-toast";
 import PreviewModal from "../components/PreviewModal";
 import CampaignDetailsModal from "../components/CampaignDetailsModal";
@@ -38,6 +38,8 @@ import EditCampaignModal from "../components/EditCampaignModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import CreateCampaignModal from "../components/CreateCampaignModal";
 import LogsModal from "../components/LogsModal";
+
+type DetailsTab = "overview" | "leads" | "replies";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -94,6 +96,17 @@ export default function CampaignsPage() {
   >({});
   const [campaignsWithHistoricalLogs, setCampaignsWithHistoricalLogs] =
     useState<Set<string>>(new Set());
+  const [campaignReplies, setCampaignReplies] = useState<
+    Record<string, CampaignReply[]>
+  >({});
+  const [campaignRepliesMeta, setCampaignRepliesMeta] = useState<
+    Record<
+      string,
+      { total: number; unreadCount: number; loading: boolean; error?: string }
+    >
+  >({});
+  const [detailsModalTab, setDetailsModalTab] =
+    useState<DetailsTab>("overview");
 
   // Load time restriction preference from localStorage
   useEffect(() => {
@@ -198,6 +211,46 @@ export default function CampaignsPage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCampaignReplies = async (campaignId: string) => {
+    setCampaignRepliesMeta((prev) => ({
+      ...prev,
+      [campaignId]: {
+        total: prev[campaignId]?.total || 0,
+        unreadCount: prev[campaignId]?.unreadCount || 0,
+        loading: true,
+        error: undefined,
+      },
+    }));
+
+    try {
+      const response = await campaignApi.getReplies(campaignId);
+      setCampaignReplies((prev) => ({
+        ...prev,
+        [campaignId]: response.replies,
+      }));
+      setCampaignRepliesMeta((prev) => ({
+        ...prev,
+        [campaignId]: {
+          total: response.total,
+          unreadCount: response.unreadCount,
+          loading: false,
+        },
+      }));
+    } catch (error: any) {
+      setCampaignRepliesMeta((prev) => ({
+        ...prev,
+        [campaignId]: {
+          total: prev[campaignId]?.total || 0,
+          unreadCount: prev[campaignId]?.unreadCount || 0,
+          loading: false,
+          error:
+            error?.message ||
+            "Failed to load replies. Please try again in a moment.",
+        },
+      }));
     }
   };
 
@@ -535,11 +588,19 @@ export default function CampaignsPage() {
     setShowEditModal(true);
   };
 
-  const handleDetailsClick = async (campaignId: string) => {
+  const handleDetailsClick = async (
+    campaignId: string,
+    tab: DetailsTab = "overview"
+  ) => {
+    setDetailsModalTab(tab);
     try {
       const campaign = await campaignApi.getById(campaignId);
       setSelectedCampaign(campaign);
       setShowDetailsModal(true);
+
+      if (tab === "replies" || !campaignReplies[campaignId]) {
+        loadCampaignReplies(campaignId);
+      }
     } catch (error) {
       toast.error("Failed to load campaign details");
       console.error(error);
@@ -906,6 +967,9 @@ export default function CampaignsPage() {
                     }
                   };
 
+                  const repliesMeta = campaignRepliesMeta[campaign.id];
+                  const unreadReplies = repliesMeta?.unreadCount || 0;
+
                   return (
                     <tr
                       key={campaign.id}
@@ -988,6 +1052,20 @@ export default function CampaignsPage() {
                             title="View Details"
                           >
                             <Eye className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDetailsClick(campaign.id, "replies")
+                            }
+                            className="relative p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all border border-transparent hover:border-indigo-200"
+                            title="View Replies"
+                          >
+                            <MessageSquare className="w-5 h-5" />
+                            {unreadReplies > 0 && (
+                              <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold text-white bg-indigo-600 rounded-full shadow-sm">
+                                {unreadReplies > 9 ? "9+" : unreadReplies}
+                              </span>
+                            )}
                           </button>
                           <button
                             onClick={() => handleEditClick(campaign)}
@@ -1120,12 +1198,33 @@ export default function CampaignsPage() {
         replacePlaceholders={replacePlaceholders}
       />
 
-      <CampaignDetailsModal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        campaign={selectedCampaign!}
-        onPreview={handlePreview}
-      />
+      {selectedCampaign && (
+        <CampaignDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setDetailsModalTab("overview");
+          }}
+          campaign={selectedCampaign}
+          onPreview={handlePreview}
+          initialTab={detailsModalTab}
+          replies={campaignReplies[selectedCampaign.id]}
+          repliesLoading={
+            campaignRepliesMeta[selectedCampaign.id]?.loading || false
+          }
+          repliesError={campaignRepliesMeta[selectedCampaign.id]?.error}
+          repliesMeta={
+            campaignRepliesMeta[selectedCampaign.id]
+              ? {
+                  total: campaignRepliesMeta[selectedCampaign.id]?.total || 0,
+                  unreadCount:
+                    campaignRepliesMeta[selectedCampaign.id]?.unreadCount || 0,
+                }
+              : undefined
+          }
+          onRefreshReplies={() => loadCampaignReplies(selectedCampaign.id)}
+        />
+      )}
 
       <DeleteConfirmModal
         isOpen={showDeleteConfirm}

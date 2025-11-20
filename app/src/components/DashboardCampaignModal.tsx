@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   X,
   Mail,
@@ -20,6 +20,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Campaign } from "../types";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 
 interface DashboardCampaignModalProps {
   campaign: Campaign | null;
@@ -35,8 +37,18 @@ export default function DashboardCampaignModal({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const leadsPerPage = 10;
 
+  const formattedTemplate = useMemo(() => {
+    if (!campaign?.template?.trim()) return "";
+    const html = marked.parse(campaign.template);
+    return DOMPurify.sanitize(html as unknown as string);
+  }, [campaign?.template]);
+
   useEffect(() => {
-    if (!campaign) return;
+    if (!campaign) {
+      setImageUrl("");
+      setImageError(false);
+      return;
+    }
 
     // Reset pagination when campaign changes
     setCurrentPage(1);
@@ -56,29 +68,35 @@ export default function DashboardCampaignModal({
       }
 
       // If it's an S3 URL, get presigned URL
-      if (bodyImageUrl.startsWith("http")) {
+      if (bodyImageUrl.includes("amazonaws.com")) {
         try {
-          const response = await fetch(`/api/s3-presigned-url`, {
+          const response = await fetch("/api/s3-presigned-url", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({ s3Url: bodyImageUrl }),
           });
 
-          if (!response.ok) {
-            setImageError(true);
-            return;
+          if (response.ok) {
+            const data = await response.json();
+            setImageUrl(data.url);
+          } else {
+            console.error("Failed to get presigned URL");
+            setImageUrl(bodyImageUrl); // Fallback to original URL
           }
-
-          const { presignedUrl } = await response.json();
-          setImageUrl(presignedUrl);
         } catch (error) {
           console.error("Error fetching presigned URL:", error);
-          setImageError(true);
+          setImageUrl(bodyImageUrl); // Fallback to original URL
         }
+      } else {
+        // Regular URL (not S3), use directly
+        setImageUrl(bodyImageUrl);
       }
     };
 
     fetchPresignedUrl();
+    setImageError(false);
   }, [campaign]);
 
   if (!campaign) return null;
@@ -273,45 +291,62 @@ export default function DashboardCampaignModal({
           {/* Campaign Details */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             {/* Email Content */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Mail className="w-5 h-5 mr-2 text-blue-600" />
-                Email Content
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-2">
+                  <Mail className="w-4 h-4 text-white" />
+                </div>
+                Email Template
               </h3>
 
               {campaign.subject && (
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <label className="text-xs font-medium text-gray-500 uppercase">
+                <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 mb-4">
+                  <label className="text-xs font-bold text-gray-500 uppercase">
                     Subject Line
                   </label>
-                  <p className="text-sm text-gray-900 mt-1">
+                  <p className="text-sm text-gray-900 mt-1 font-semibold">
                     {campaign.subject}
                   </p>
                 </div>
               )}
 
-              {campaign.template && (
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <label className="text-xs font-medium text-gray-500 uppercase">
-                    Email Template
-                  </label>
-                  <div className="text-sm text-gray-900 mt-2 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                    {campaign.template}
-                  </div>
-                </div>
-              )}
-
-              {imageUrl && !imageError && (
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <label className="text-xs font-medium text-gray-500 uppercase mb-2 block">
-                    Body Image
-                  </label>
-                  <img
-                    src={imageUrl}
-                    alt="Email body"
-                    className="w-full rounded-lg border border-gray-300"
-                    onError={() => setImageError(true)}
+              <div className="bg-white rounded-lg p-4 text-sm text-gray-900 shadow-sm border border-gray-200 min-h-[140px]">
+                {formattedTemplate ? (
+                  <div
+                    className="space-y-2"
+                    dangerouslySetInnerHTML={{ __html: formattedTemplate }}
                   />
+                ) : (
+                  <p className="text-gray-400 italic">No template set</p>
+                )}
+              </div>
+
+              {(campaign.bodyImageS3Url || campaign.bodyImage) && (
+                <div className="mt-4">
+                  {imageError ? (
+                    <div className="text-center py-8 text-gray-500 border border-gray-300 rounded-lg">
+                      <p className="text-sm">Failed to load image</p>
+                      <p className="text-xs mt-1 break-all">
+                        {(
+                          campaign.bodyImageS3Url || campaign.bodyImage
+                        )?.startsWith("http")
+                          ? campaign.bodyImageS3Url || campaign.bodyImage
+                          : "Base64 image"}
+                      </p>
+                    </div>
+                  ) : imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt="Email body image"
+                      className="max-w-full rounded-lg"
+                      onError={() => setImageError(true)}
+                      onLoad={() => setImageError(false)}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <p className="text-sm">Loading image...</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

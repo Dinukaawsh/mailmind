@@ -149,6 +149,33 @@ export const campaignApi = {
       isComplete: boolean;
       completionMessage?: string | null;
     }>(`/api/campaigns/${id}/logs/history`),
+  getReplies: (
+    id: string,
+    params?: { page?: number; pageSize?: number; status?: string }
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", params.page.toString());
+    if (params?.pageSize) query.set("pageSize", params.pageSize.toString());
+    if (params?.status) query.set("status", params.status);
+
+    const queryString = query.toString();
+    const endpoint = `/api/campaigns/${id}/replies${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    return fetchWithError<{
+      replies: import("../types").CampaignReply[];
+      total: number;
+      unreadCount: number;
+      page: number;
+      pageSize: number;
+    }>(endpoint);
+  },
+  markReplyRead: (campaignId: string, replyId: string) =>
+    fetchWithError<{ success: boolean }>(
+      `/api/campaigns/${campaignId}/replies/${replyId}/read`,
+      { method: "POST" }
+    ),
 };
 
 // Domain API

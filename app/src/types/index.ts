@@ -21,6 +21,26 @@ export interface Campaign {
   csvData?: any[]; // Lead data from CSV
 }
 
+export interface CampaignReply {
+  id: string;
+  campaignId: string;
+  leadEmail: string;
+  leadName?: string;
+  subject?: string;
+  body: string;
+  receivedAt: string;
+  status?: "unread" | "read" | "flagged";
+  threadId?: string;
+  messageId?: string;
+  leadData?: Record<string, any>;
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    size: number;
+    url?: string;
+  }>;
+}
+
 export interface Domain {
   id: string;
   name: string;
