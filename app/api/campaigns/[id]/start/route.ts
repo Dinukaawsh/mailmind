@@ -47,6 +47,7 @@ export async function POST(
     const mongoClient = await getMongoClient();
     const db = mongoClient.db(process.env.MONGODB_DATABASE || "mailmind");
     const collection = db.collection("campaigns");
+    const domainsCollection = db.collection("domains");
 
     // Fetch campaign from database
     const campaign = await collection.findOne({ _id: new ObjectId(id) });
@@ -121,6 +122,24 @@ export async function POST(
     // Normalize CSV data before sending to webhook
     const normalizedCsvData = normalizeEmailColumn(campaign.csvData || []);
 
+    // Resolve domain name for the webhook payload
+    let domainName = campaign.domainName || "";
+    if (!domainName && campaign.domainId) {
+      try {
+        const domainFilter = ObjectId.isValid(campaign.domainId)
+          ? { _id: new ObjectId(campaign.domainId) }
+          : { name: campaign.domainId };
+
+        const domain = await domainsCollection.findOne(domainFilter);
+        domainName = domain?.name || "";
+      } catch (domainError) {
+        console.warn(
+          `Failed to resolve domain name for campaign ${campaign._id.toString()}:`,
+          domainError
+        );
+      }
+    }
+
     // Prepare ALL campaign data for webhook
     // Send complete campaign object with all fields
     const campaignData = {
@@ -128,6 +147,7 @@ export async function POST(
       id: campaign._id.toString(),
       name: campaign.name,
       domainId: campaign.domainId,
+      domainName,
       template: campaign.template || "",
       subject: campaign.subject || "",
       bodyImage: campaign.bodyImage || "",
