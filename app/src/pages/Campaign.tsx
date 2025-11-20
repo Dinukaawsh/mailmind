@@ -28,6 +28,8 @@ import {
   Filter,
   FileText,
   Users,
+  RotateCcw,
+  Archive,
 } from "lucide-react";
 import { campaignApi, domainApi } from "../utils/api";
 import { getScheduleDisplay } from "../utils/schedule";
@@ -41,11 +43,13 @@ import CreateCampaignModal from "../components/CreateCampaignModal";
 import LogsModal from "../components/LogsModal";
 
 type DetailsTab = "overview" | "leads" | "replies";
+type CampaignTab = "active" | "inactive";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<CampaignTab>("active");
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
     null
   );
@@ -573,13 +577,26 @@ export default function CampaignsPage() {
     if (!campaignToDelete) return;
 
     try {
-      await campaignApi.delete(campaignToDelete);
-      toast.success("Campaign deleted successfully");
+      // Soft delete: set isActive to false instead of deleting from database
+      await campaignApi.update(campaignToDelete, { isActive: false });
+      toast.success("Campaign archived successfully");
       setShowDeleteConfirm(false);
       setCampaignToDelete(null);
       loadCampaigns();
     } catch (error) {
-      toast.error("Failed to delete campaign");
+      toast.error("Failed to archive campaign");
+      console.error(error);
+    }
+  };
+
+  const handleRestoreCampaign = async (campaignId: string) => {
+    try {
+      // Restore: set isActive to true
+      await campaignApi.update(campaignId, { isActive: true });
+      toast.success("Campaign restored successfully");
+      loadCampaigns();
+    } catch (error) {
+      toast.error("Failed to restore campaign");
       console.error(error);
     }
   };
@@ -643,9 +660,18 @@ export default function CampaignsPage() {
     setShowPreviewModal(true);
   };
 
-  const filteredCampaigns = campaigns.filter((campaign) =>
-    campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    // Filter by active/inactive status
+    const isActive = campaign.isActive !== false; // Default to true if not set
+    const matchesTab = activeTab === "active" ? isActive : !isActive;
+
+    // Filter by search query
+    const matchesSearch = campaign.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    return matchesTab && matchesSearch;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -754,7 +780,7 @@ export default function CampaignsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-purple-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -765,8 +791,10 @@ export default function CampaignsPage() {
                 {campaigns.length}
               </p>
               <p className="mt-2 text-sm text-gray-500 flex items-center">
-                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></span>
-                All campaigns
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                {campaigns.filter((c) => c.isActive !== false).length} Active
+                <span className="w-1.5 h-1.5 bg-orange-500 rounded-full ml-3 mr-2"></span>
+                {campaigns.filter((c) => c.isActive === false).length} Archived
               </p>
             </div>
             <div className="ml-4 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
@@ -779,14 +807,14 @@ export default function CampaignsPage() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-                Active
+                Active Campaigns
               </p>
               <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                {campaigns.filter((c) => c.status === "active").length}
+                {campaigns.filter((c) => c.isActive !== false).length}
               </p>
               <p className="mt-2 text-sm text-gray-500 flex items-center">
-                <PlayCircle className="w-3 h-3 mr-1 text-green-600" />
-                Running now
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                Currently enabled
               </p>
             </div>
             <div className="ml-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
@@ -795,47 +823,120 @@ export default function CampaignsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300 transform hover:scale-105">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-orange-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-                Completed
+                Archived Campaigns
               </p>
               <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                {campaigns.filter((c) => c.status === "completed").length}
+                {campaigns.filter((c) => c.isActive === false).length}
               </p>
               <p className="mt-2 text-sm text-gray-500 flex items-center">
-                <CheckCircle className="w-3 h-3 mr-1 text-blue-600" />
-                Finished
+                <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mr-2"></span>
+                Currently archived
               </p>
             </div>
-            <div className="ml-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-              <CheckCircle className="w-8 h-8 text-blue-600" />
+            <div className="ml-4 p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl">
+              <Archive className="w-8 h-8 text-orange-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-orange-300 transform hover:scale-105">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Running Now
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {
+                  campaigns.filter(
+                    (c) => c.status === "active" && c.isActive !== false
+                  ).length
+                }
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <PlayCircle className="w-3 h-3 mr-1 text-blue-600" />
+                Active campaigns
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+              <Activity className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-indigo-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
                 Total Leads
               </p>
               <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                {campaigns.reduce(
-                  (sum, c) => sum + (c.csvData?.length || 0),
-                  0
-                )}
+                {campaigns
+                  .filter((c) => c.isActive !== false)
+                  .reduce((sum, c) => sum + (c.csvData?.length || 0), 0)}
               </p>
               <p className="mt-2 text-sm text-gray-500 flex items-center">
-                <Users className="w-3 h-3 mr-1 text-orange-600" />
+                <Users className="w-3 h-3 mr-1 text-indigo-600" />
                 Contacts loaded
               </p>
             </div>
-            <div className="ml-4 p-3 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl">
-              <Users className="w-8 h-8 text-orange-600" />
+            <div className="ml-4 p-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
+              <Users className="w-8 h-8 text-indigo-600" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab("active")}
+            className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
+              activeTab === "active"
+                ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-600 border-b-2 border-green-600"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <PlayCircle className="w-5 h-5" />
+              <span>Active Campaigns</span>
+              <span
+                className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === "active"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {campaigns.filter((c) => c.isActive !== false).length}
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("inactive")}
+            className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
+              activeTab === "inactive"
+                ? "bg-gradient-to-r from-orange-50 to-amber-50 text-orange-600 border-b-2 border-orange-600"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Archive className="w-5 h-5" />
+              <span>Archived Campaigns</span>
+              <span
+                className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === "inactive"
+                    ? "bg-orange-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {campaigns.filter((c) => c.isActive === false).length}
+              </span>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -903,11 +1004,11 @@ export default function CampaignsPage() {
                   Try a different search term
                 </p>
               </div>
-            ) : (
+            ) : activeTab === "active" ? (
               <div>
                 <Mail className="w-16 h-16 mx-auto text-gray-300 mb-4" />
                 <p className="text-gray-500 text-lg font-medium">
-                  No campaigns yet
+                  No active campaigns yet
                 </p>
                 <p className="text-gray-400 text-sm mt-2">
                   Create your first campaign to get started
@@ -919,6 +1020,16 @@ export default function CampaignsPage() {
                   <Plus className="w-4 h-4 mr-2" />
                   Create Campaign
                 </button>
+              </div>
+            ) : (
+              <div>
+                <Archive className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 text-lg font-medium">
+                  No archived campaigns
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Archived campaigns will appear here
+                </p>
               </div>
             )}
           </div>
@@ -1065,82 +1176,97 @@ export default function CampaignsPage() {
                               </span>
                             )}
                           </button>
-                          <button
-                            onClick={() => handleEditClick(campaign)}
-                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-all border border-transparent hover:border-purple-200"
-                            title="Edit Campaign"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                          <button
-                            className={`p-2 rounded-lg transition-all border border-transparent ${
-                              isWithinAllowedHours()
-                                ? "text-green-600 hover:bg-green-50 hover:border-green-200"
-                                : "text-gray-400 cursor-not-allowed opacity-50"
-                            }`}
-                            title={
-                              isWithinAllowedHours()
-                                ? "Launch Campaign"
-                                : `Available 8 AM - 6 PM Paris time. Current: ${
-                                    currentParisTime || "Loading..."
-                                  }`
-                            }
-                            onClick={() => {
-                              if (isWithinAllowedHours()) {
-                                handleStartCampaign(campaign.id);
-                              } else {
-                                toast.error(
-                                  `Campaign can only be sent between 8 AM - 6 PM Paris time. Current time: ${currentParisTime}`
-                                );
-                              }
-                            }}
-                            disabled={!isWithinAllowedHours()}
-                          >
-                            <Play className="w-5 h-5" />
-                          </button>
-                          {/* Live/Streaming Logs Button */}
-                          {campaignLogs[campaign.id] &&
-                            campaignLogs[campaign.id].length > 0 && (
+                          {activeTab === "active" && (
+                            <>
                               <button
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all border border-transparent hover:border-indigo-200 relative"
-                                title="View Live Logs"
+                                onClick={() => handleEditClick(campaign)}
+                                className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-all border border-transparent hover:border-purple-200"
+                                title="Edit Campaign"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
+                                className={`p-2 rounded-lg transition-all border border-transparent ${
+                                  isWithinAllowedHours()
+                                    ? "text-green-600 hover:bg-green-50 hover:border-green-200"
+                                    : "text-gray-400 cursor-not-allowed opacity-50"
+                                }`}
+                                title={
+                                  isWithinAllowedHours()
+                                    ? "Launch Campaign"
+                                    : `Available 8 AM - 6 PM Paris time. Current: ${
+                                        currentParisTime || "Loading..."
+                                      }`
+                                }
                                 onClick={() => {
-                                  setSelectedCampaignForLogs(campaign.id);
-                                  setShowLogsModal(true);
-                                  const status =
-                                    campaignLogsStatus[campaign.id];
-                                  if (
-                                    !status?.isComplete &&
-                                    !pollingIntervals[campaign.id]
-                                  ) {
-                                    startLogPolling(campaign.id);
+                                  if (isWithinAllowedHours()) {
+                                    handleStartCampaign(campaign.id);
+                                  } else {
+                                    toast.error(
+                                      `Campaign can only be sent between 8 AM - 6 PM Paris time. Current time: ${currentParisTime}`
+                                    );
                                   }
                                 }}
+                                disabled={!isWithinAllowedHours()}
                               >
-                                <FileText className="w-5 h-5" />
-                                {!campaignLogsStatus[campaign.id]
-                                  ?.isComplete && (
-                                  <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span>
-                                )}
+                                <Play className="w-5 h-5" />
                               </button>
-                            )}
-                          {/* Historical Logs Button */}
-                          {campaignsWithHistoricalLogs.has(campaign.id) && (
+                              {/* Live/Streaming Logs Button */}
+                              {campaignLogs[campaign.id] &&
+                                campaignLogs[campaign.id].length > 0 && (
+                                  <button
+                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all border border-transparent hover:border-indigo-200 relative"
+                                    title="View Live Logs"
+                                    onClick={() => {
+                                      setSelectedCampaignForLogs(campaign.id);
+                                      setShowLogsModal(true);
+                                      const status =
+                                        campaignLogsStatus[campaign.id];
+                                      if (
+                                        !status?.isComplete &&
+                                        !pollingIntervals[campaign.id]
+                                      ) {
+                                        startLogPolling(campaign.id);
+                                      }
+                                    }}
+                                  >
+                                    <FileText className="w-5 h-5" />
+                                    {!campaignLogsStatus[campaign.id]
+                                      ?.isComplete && (
+                                      <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span>
+                                    )}
+                                  </button>
+                                )}
+                              {/* Historical Logs Button */}
+                              {campaignsWithHistoricalLogs.has(campaign.id) && (
+                                <button
+                                  className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all border border-transparent hover:border-amber-200"
+                                  title="View Historical Logs"
+                                  onClick={() =>
+                                    loadHistoricalLogs(campaign.id)
+                                  }
+                                >
+                                  <FileText className="w-5 h-5" />
+                                </button>
+                              )}
+                              <button
+                                className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all border border-transparent hover:border-orange-200"
+                                title="Archive Campaign"
+                                onClick={() => handleDeleteClick(campaign.id)}
+                              >
+                                <Archive className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+                          {activeTab === "inactive" && (
                             <button
-                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all border border-transparent hover:border-amber-200"
-                              title="View Historical Logs"
-                              onClick={() => loadHistoricalLogs(campaign.id)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all border border-transparent hover:border-green-200"
+                              title="Restore Campaign"
+                              onClick={() => handleRestoreCampaign(campaign.id)}
                             >
-                              <FileText className="w-5 h-5" />
+                              <RotateCcw className="w-5 h-5" />
                             </button>
                           )}
-                          <button
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-200"
-                            title="Delete Campaign"
-                            onClick={() => handleDeleteClick(campaign.id)}
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1231,6 +1357,10 @@ export default function CampaignsPage() {
           setCampaignToDelete(null);
         }}
         onConfirm={handleDeleteCampaign}
+        title="Archive Campaign"
+        message="Are you sure you want to archive this campaign? You can restore it later from the Archived Campaigns tab."
+        confirmText="Archive"
+        variant="archive"
       />
 
       <CreateCampaignModal

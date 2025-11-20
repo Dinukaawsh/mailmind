@@ -87,6 +87,7 @@ export async function GET(
       followUpTemplate: campaign.followUpTemplate,
       followUpDelay: campaign.followUpDelay || 7,
       csvData: campaign.csvData || [],
+      isActive: campaign.isActive !== undefined ? campaign.isActive : true, // Default to true for backward compatibility
     };
 
     return NextResponse.json(formattedCampaign);
@@ -180,6 +181,7 @@ export async function PUT(
     }
     if (csvData !== undefined) updateData.csvData = csvData; // Updated lead data from edits
     if (body.status !== undefined) updateData.status = body.status;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive; // Soft delete flag
 
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },

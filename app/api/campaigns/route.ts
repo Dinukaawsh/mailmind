@@ -70,6 +70,7 @@ export async function GET() {
         followUpTemplate: item.followUpTemplate,
         followUpDelay: item.followUpDelay || 7,
         csvData: item.csvData || [],
+        isActive: item.isActive !== undefined ? item.isActive : true, // Default to true for backward compatibility
       };
     });
 
@@ -154,6 +155,7 @@ export async function POST(request: Request) {
       unsubscribeCount: 0,
       status: "paused", // New campaigns start as paused
       createdAt: new Date().toISOString(),
+      isActive: true, // New campaigns are active by default
     };
 
     if (startDateTimeValue) {

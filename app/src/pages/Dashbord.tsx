@@ -77,7 +77,9 @@ export default function Dashboard() {
 
       // Fetch campaigns
       const campaignsData = await campaignApi.getAll();
-      setCampaigns(campaignsData);
+      // Filter to show only active campaigns (not archived)
+      const activeCampaigns = campaignsData.filter((c) => c.isActive !== false);
+      setCampaigns(activeCampaigns);
 
       // Generate performance data from actual campaigns
       // Group campaigns by date and aggregate metrics
@@ -107,8 +109,8 @@ export default function Dashboard() {
         });
       }
 
-      // Aggregate campaign data
-      campaignsData.forEach((campaign) => {
+      // Aggregate campaign data (only active campaigns)
+      activeCampaigns.forEach((campaign) => {
         const campaignDate = new Date(campaign.createdAt);
         const dateKey = campaignDate.toLocaleDateString("en-US", {
           month: "short",
@@ -157,7 +159,9 @@ export default function Dashboard() {
       try {
         // Fetch campaigns to calculate domain usage
         const { campaignApi } = await import("../utils/api");
-        const campaigns = await campaignApi.getAll();
+        const allCampaigns = await campaignApi.getAll();
+        // Filter to show only active campaigns (not archived)
+        const campaigns = allCampaigns.filter((c) => c.isActive !== false);
 
         // Fetch domains to get domain names
         const { domainApi } = await import("../utils/api");

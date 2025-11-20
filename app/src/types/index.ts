@@ -20,6 +20,7 @@ export interface Campaign {
   followUpTemplate?: string;
   followUpDelay?: number;
   csvData?: any[]; // Lead data from CSV
+  isActive?: boolean; // Soft delete flag - false means archived
 }
 
 export interface CampaignReply {
