@@ -5,6 +5,7 @@ import { X, Eye, Mail, MessageSquare, RefreshCw, Clock } from "lucide-react";
 import { Campaign, CampaignReply } from "../types";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
+import { getScheduleDisplay } from "../utils/schedule";
 
 type CampaignDetailsTab = "overview" | "leads" | "replies";
 
@@ -85,6 +86,8 @@ export default function CampaignDetailsModal({
       return value;
     }
   };
+
+  const scheduleInfo = getScheduleDisplay(campaign);
 
   const handleTabChange = (tab: CampaignDetailsTab) => {
     setActiveTab(tab);
@@ -287,23 +290,15 @@ export default function CampaignDetailsModal({
                     </dd>
                   </div>
 
-                  {campaign.startDate && (
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                  {(scheduleInfo.dateLabel || scheduleInfo.timeLabel) && (
+                    <div className="bg-white rounded-lg p-3 shadow-sm sm:col-span-2">
                       <dt className="text-xs font-bold text-gray-500 uppercase">
-                        Start Date
+                        Start Date & Time
                       </dt>
                       <dd className="mt-1 text-sm text-gray-900 font-semibold">
-                        {campaign.startDate}
-                      </dd>
-                    </div>
-                  )}
-                  {campaign.startTime && (
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <dt className="text-xs font-bold text-gray-500 uppercase">
-                        Start Time
-                      </dt>
-                      <dd className="mt-1 text-sm text-gray-900 font-semibold">
-                        {campaign.startTime}
+                        {scheduleInfo.dateLabel || "Not scheduled"}
+                        {scheduleInfo.timeLabel &&
+                          ` at ${scheduleInfo.timeLabel}`}
                       </dd>
                     </div>
                   )}

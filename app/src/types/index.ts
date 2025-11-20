@@ -10,6 +10,7 @@ export interface Campaign {
   createdAt: string;
   startDate?: string;
   startTime?: string;
+  startDateTime?: string;
   domainId: string;
   template?: string;
   subject?: string;

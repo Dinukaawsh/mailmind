@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
+import {
+  ensureStartDateTime,
+  getScheduleFieldsForResponse,
+} from "./utils/schedule";
 
 /**
  * Campaigns API Routes
@@ -42,28 +46,32 @@ export async function GET() {
     const data = await collection.find({}).sort({ createdAt: -1 }).toArray();
 
     // Transform to match frontend format
-    const formattedData = data.map((item) => ({
-      id: item._id.toString(),
-      name: item.name,
-      sentCount: item.sentCount || 0,
-      openRate: item.openRate || 0,
-      replyRate: item.replyRate || 0,
-      bounceRate: item.bounceRate || 0,
-      unsubscribeCount: item.unsubscribeCount || 0,
-      status: item.status || "paused",
-      createdAt: item.createdAt || new Date().toISOString(),
-      startDate: item.startDate,
-      startTime: item.startTime,
-      domainId: item.domainId,
-      template: item.template,
-      subject: item.subject,
-      bodyImage: item.bodyImage,
-      bodyImageS3Url: item.bodyImageS3Url || "",
-      csvFileS3Url: item.csvFileS3Url || "",
-      followUpTemplate: item.followUpTemplate,
-      followUpDelay: item.followUpDelay || 7,
-      csvData: item.csvData || [],
-    }));
+    const formattedData = data.map((item) => {
+      const scheduleFields = getScheduleFieldsForResponse(item as any);
+      return {
+        id: item._id.toString(),
+        name: item.name,
+        sentCount: item.sentCount || 0,
+        openRate: item.openRate || 0,
+        replyRate: item.replyRate || 0,
+        bounceRate: item.bounceRate || 0,
+        unsubscribeCount: item.unsubscribeCount || 0,
+        status: item.status || "paused",
+        createdAt: item.createdAt || new Date().toISOString(),
+        startDate: scheduleFields.startDate,
+        startTime: scheduleFields.startTime,
+        startDateTime: scheduleFields.startDateTime,
+        domainId: item.domainId,
+        template: item.template,
+        subject: item.subject,
+        bodyImage: item.bodyImage,
+        bodyImageS3Url: item.bodyImageS3Url || "",
+        csvFileS3Url: item.csvFileS3Url || "",
+        followUpTemplate: item.followUpTemplate,
+        followUpDelay: item.followUpDelay || 7,
+        csvData: item.csvData || [],
+      };
+    });
 
     return NextResponse.json(formattedData);
   } catch (error: any) {
@@ -105,6 +113,7 @@ export async function POST(request: Request) {
       followUpDelay,
       startDate,
       startTime,
+      startDateTime,
       csvData,
     } = body;
 
@@ -121,7 +130,13 @@ export async function POST(request: Request) {
     const collection = db.collection("campaigns");
 
     // Create campaign document
-    const campaignDoc = {
+    const startDateTimeValue = ensureStartDateTime({
+      startDateTime,
+      startDate,
+      startTime,
+    });
+
+    const campaignDoc: Record<string, any> = {
       name,
       domainId,
       template,
@@ -131,8 +146,6 @@ export async function POST(request: Request) {
       csvFileS3Url: csvFileS3Url || "",
       followUpTemplate: followUpTemplate || "",
       followUpDelay: parseInt(followUpDelay),
-      startDate: startDate || "",
-      startTime: startTime || "",
       csvData: csvData || [],
       sentCount: 0,
       openRate: 0,
@@ -142,6 +155,10 @@ export async function POST(request: Request) {
       status: "paused", // New campaigns start as paused
       createdAt: new Date().toISOString(),
     };
+
+    if (startDateTimeValue) {
+      campaignDoc.startDateTime = startDateTimeValue;
+    }
 
     const result = await collection.insertOne(campaignDoc);
 

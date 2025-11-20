@@ -22,6 +22,7 @@ import {
 import { Campaign } from "../types";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
+import { getScheduleDisplay } from "../utils/schedule";
 
 interface DashboardCampaignModalProps {
   campaign: Campaign | null;
@@ -100,6 +101,8 @@ export default function DashboardCampaignModal({
   }, [campaign]);
 
   if (!campaign) return null;
+
+  const scheduleInfo = getScheduleDisplay(campaign);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -358,14 +361,14 @@ export default function DashboardCampaignModal({
                 Campaign Settings
               </h3>
 
-              {campaign.startDate && (
+              {(scheduleInfo.dateLabel || scheduleInfo.timeLabel) && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <label className="text-xs font-medium text-gray-500 uppercase">
                     Start Date & Time
                   </label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {new Date(campaign.startDate).toLocaleDateString()}
-                    {campaign.startTime && ` at ${campaign.startTime}`}
+                    {scheduleInfo.dateLabel || "Not scheduled"}
+                    {scheduleInfo.timeLabel && ` at ${scheduleInfo.timeLabel}`}
                   </p>
                 </div>
               )}

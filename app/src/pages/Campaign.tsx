@@ -30,6 +30,7 @@ import {
   Users,
 } from "lucide-react";
 import { campaignApi, domainApi } from "../utils/api";
+import { getScheduleDisplay } from "../utils/schedule";
 import { Campaign, CampaignReply, Domain } from "../types";
 import toast from "react-hot-toast";
 import PreviewModal from "../components/PreviewModal";
@@ -948,6 +949,7 @@ export default function CampaignsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCampaigns.map((campaign) => {
+                  const scheduleInfo = getScheduleDisplay(campaign);
                   const getStatusIcon = (status: string) => {
                     switch (status) {
                       case "active":
@@ -1009,16 +1011,12 @@ export default function CampaignsPage() {
                         <div className="flex flex-col">
                           <div className="flex items-center text-sm text-gray-900">
                             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-                            {campaign.startDate
-                              ? new Date(
-                                  campaign.startDate
-                                ).toLocaleDateString()
-                              : "Not scheduled"}
+                            {scheduleInfo.dateLabel || "Not scheduled"}
                           </div>
-                          {campaign.startTime && (
+                          {scheduleInfo.timeLabel && (
                             <div className="flex items-center text-xs text-gray-500 mt-1">
                               <Clock className="w-3 h-3 text-gray-400 mr-1" />
-                              {campaign.startTime}
+                              {scheduleInfo.timeLabel}
                             </div>
                           )}
                         </div>

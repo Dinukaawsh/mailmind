@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
+import { ensureStartDateTime } from "../../utils/schedule";
 
 /**
  * Start Campaign Route
@@ -122,6 +123,13 @@ export async function POST(
     // Normalize CSV data before sending to webhook
     const normalizedCsvData = normalizeEmailColumn(campaign.csvData || []);
 
+    const startDateTimeValue =
+      ensureStartDateTime({
+        startDateTime: campaign.startDateTime,
+        startDate: campaign.startDate,
+        startTime: campaign.startTime,
+      }) || "";
+
     // Resolve domain name for the webhook payload
     let domainName = campaign.domainName || "";
     if (!domainName && campaign.domainId) {
@@ -153,8 +161,7 @@ export async function POST(
       bodyImage: campaign.bodyImage || "",
       followUpTemplate: campaign.followUpTemplate || "",
       followUpDelay: campaign.followUpDelay || 7,
-      startDate: campaign.startDate || "",
-      startTime: campaign.startTime || "",
+      startDateTime: startDateTimeValue,
       csvData: normalizedCsvData, // Use normalized CSV data
       sentCount: campaign.sentCount || 0,
       openRate: campaign.openRate || 0,
