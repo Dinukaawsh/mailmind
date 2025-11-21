@@ -23,7 +23,6 @@ export default function EditDomainModal({
     name: "",
     status: "connected" as "connected" | "not_connected" | "error",
     emailsSentPerDay: 0,
-    provider: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +32,6 @@ export default function EditDomainModal({
         name: domain.name || "",
         status: domain.status || "connected",
         emailsSentPerDay: domain.emailsSentPerDay || 0,
-        provider: domain.provider || "",
       });
     }
   }, [domain]);
@@ -63,6 +61,30 @@ export default function EditDomainModal({
   ];
 
   if (!isOpen || !domain) return null;
+
+  // Format the createdAt date
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      };
+      const timeOptions: Intl.DateTimeFormatOptions = {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      };
+      const formattedDate = date.toLocaleDateString("en-US", dateOptions);
+      const formattedTime = date.toLocaleTimeString("en-US", timeOptions);
+      return `${formattedDate} at ${formattedTime}`;
+    } catch (error) {
+      return "Invalid Date";
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -132,15 +154,20 @@ export default function EditDomainModal({
             helperText="Number of emails sent daily from this domain"
           />
 
-          {/* Provider */}
+          {/* Webhook URL (read-only) */}
           <Input
             type="text"
-            label="Provider"
-            value={formData.provider}
-            onChange={(e) =>
-              setFormData({ ...formData, provider: e.target.value })
-            }
-            placeholder="e.g., Gmail, SendGrid, etc."
+            label="Webhook URL"
+            value={domain.webhookUrl || "N/A"}
+            disabled
+            helperText="Webhook URL assigned to this domain (cannot be edited)"
+          />
+          <Input
+            type="text"
+            label="Created At"
+            value={formatDateTime(domain.createdAt)}
+            disabled
+            helperText="Date and time the domain was created"
           />
 
           {/* Domain Type (read-only) */}

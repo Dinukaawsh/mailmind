@@ -140,6 +140,12 @@ export default function DomainsPage() {
     return `${diffDays} days ago`;
   };
 
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
+
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       {/* Header */}
@@ -345,6 +351,10 @@ export default function DomainsPage() {
                         <span className="flex items-center">
                           <TrendingUp className="w-4 h-4 mr-1 text-gray-400" />
                           {domain.emailsSentPerDay} emails/day
+                        </span>
+                        <span className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                          {formatDateTime(domain.createdAt)}
                         </span>
                         <span className="flex items-center">
                           <Clock className="w-4 h-4 mr-1 text-gray-400" />

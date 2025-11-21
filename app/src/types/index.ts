@@ -50,7 +50,8 @@ export interface Domain {
   lastSyncTime?: string;
   emailsSentPerDay: number;
   type: "gmail" | "custom";
-  provider?: string;
+  webhookUrl?: string;
+  createdAt?: string;
 }
 
 export interface Unsubscriber {

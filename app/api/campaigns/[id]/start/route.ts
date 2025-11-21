@@ -60,11 +60,33 @@ export async function POST(
       );
     }
 
-    // Get webhook URL from environment
-    const webhookUrl = process.env.NEXT_PUBLIC_API_URL;
+    // Get the domain associated with this campaign
+    if (!campaign.domainId) {
+      return NextResponse.json(
+        { error: "Campaign has no domain assigned" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch domain to get its webhook URL
+    const domain = await domainsCollection.findOne({
+      _id: new ObjectId(campaign.domainId),
+    });
+
+    if (!domain) {
+      return NextResponse.json(
+        { error: "Domain not found for this campaign" },
+        { status: 404 }
+      );
+    }
+
+    // Get webhook URL from the domain document
+    const webhookUrl = domain.webhookUrl;
     if (!webhookUrl) {
       return NextResponse.json(
-        { error: "Webhook URL not configured" },
+        {
+          error: `Domain "${domain.name}" does not have a webhook URL configured. Please ensure the domain was created via the webhook.`,
+        },
         { status: 500 }
       );
     }
@@ -130,23 +152,15 @@ export async function POST(
         startTime: campaign.startTime,
       }) || "";
 
-    // Resolve domain name for the webhook payload
-    let domainName = campaign.domainName || "";
-    if (!domainName && campaign.domainId) {
-      try {
-        const domainFilter = ObjectId.isValid(campaign.domainId)
-          ? { _id: new ObjectId(campaign.domainId) }
-          : { name: campaign.domainId };
+    // Use domain name from the already fetched domain
+    const domainName = domain.name || campaign.domainName || "";
 
-        const domain = await domainsCollection.findOne(domainFilter);
-        domainName = domain?.name || "";
-      } catch (domainError) {
-        console.warn(
-          `Failed to resolve domain name for campaign ${campaign._id.toString()}:`,
-          domainError
-        );
-      }
-    }
+    // Log campaign launch details
+    console.log(
+      `🚀 Launching campaign "${
+        campaign.name
+      }" (${campaign._id.toString()}) with domain "${domainName}" to webhook: ${webhookUrl}`
+    );
 
     // Prepare ALL campaign data for webhook
     // Send complete campaign object with all fields
@@ -156,6 +170,14 @@ export async function POST(
       name: campaign.name,
       domainId: campaign.domainId,
       domainName,
+      // Include domain details for webhook processing
+      domain: {
+        id: domain._id.toString(),
+        name: domain.name,
+        type: domain.type,
+        status: domain.status,
+        emailsSentPerDay: domain.emailsSentPerDay || 0,
+      },
       template: campaign.template || "",
       subject: campaign.subject || "",
       bodyImage: campaign.bodyImage || "",

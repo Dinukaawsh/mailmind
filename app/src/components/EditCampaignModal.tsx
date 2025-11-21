@@ -326,8 +326,16 @@ export default function EditCampaignModal({
       newErrors.name = "Campaign name is required";
     }
 
-    if (!formData.domainId) {
+    if (!formData.domainId || !formData.domainId.trim()) {
       newErrors.domainId = "Please select a domain";
+    } else {
+      // Check if the selected domain exists and has a webhook URL
+      const selectedDomain = domains.find((d) => d.id === formData.domainId);
+      if (!selectedDomain) {
+        newErrors.domainId = "Selected domain not found";
+      } else if (!selectedDomain.webhookUrl) {
+        newErrors.domainId = "Selected domain has no webhook URL configured";
+      }
     }
 
     if (!formData.subject.trim()) {
@@ -347,9 +355,15 @@ export default function EditCampaignModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check if there are any connected domains available
+    if (domainOptions.length === 0) {
+      toast.error("No connected domains available. Please add a domain first.");
+      return;
+    }
+
     // Validate form before proceeding
     if (!validateForm()) {
-      toast.error("Please fill in all required fields");
+      toast.error("Please fill in all required fields correctly");
       return;
     }
 
@@ -408,6 +422,10 @@ export default function EditCampaignModal({
       label: `${domain.name} (${domain.type})`,
     }));
 
+  // Get webhook URL for selected domain
+  const selectedDomain = domains.find((d) => d.id === formData.domainId);
+  const webhookUrl = selectedDomain?.webhookUrl || "N/A";
+
   if (!isOpen) return null;
 
   return (
@@ -460,11 +478,31 @@ export default function EditCampaignModal({
                   setFormData({ ...formData, domainId: value });
                   setErrors({ ...errors, domainId: "" });
                 }}
-                placeholder="Select a domain"
+                placeholder={
+                  domainOptions.length === 0
+                    ? "No connected domains available"
+                    : "Select a domain"
+                }
                 required
                 error={errors.domainId}
               />
+              {domainOptions.length === 0 && (
+                <p className="mt-2 text-sm text-amber-600">
+                  Please add and connect a domain first from the Domains page
+                </p>
+              )}
             </div>
+
+            {/* Webhook URL Display - only show when domain is selected */}
+            {formData.domainId && (
+              <Input
+                label="Webhook URL"
+                value={webhookUrl}
+                disabled
+                helperText="Webhook URL for the selected domain (auto-updates when domain changes)"
+                inputSize="lg"
+              />
+            )}
 
             {/* Email Subject */}
             <Input
