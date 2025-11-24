@@ -52,16 +52,16 @@ export default function DeleteConfirmModal({
           <p className="text-sm text-gray-600 text-center mb-8 leading-relaxed">
             {message}
           </p>
-          <div className="flex items-center justify-end space-x-3">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+              className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className={`px-6 py-3 bg-gradient-to-r ${buttonColorClass} text-white font-bold rounded-xl transition-all shadow-lg`}
+              className={`w-full px-6 py-3 bg-gradient-to-r ${buttonColorClass} text-white font-bold rounded-xl transition-all shadow-lg`}
             >
               {confirmText}
             </button>

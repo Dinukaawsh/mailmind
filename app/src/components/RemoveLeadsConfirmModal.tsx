@@ -35,16 +35,16 @@ export default function RemoveLeadsConfirmModal({
             Are you sure you want to remove all {leadCount} leads? You can
             re-upload the CSV file or add new leads manually.
           </p>
-          <div className="flex items-center justify-end space-x-3">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+              className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl hover:from-orange-700 hover:to-red-700 transition-all shadow-lg"
+              className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl hover:from-orange-700 hover:to-red-700 transition-all shadow-lg"
             >
               Remove All
             </button>

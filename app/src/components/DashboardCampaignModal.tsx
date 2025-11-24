@@ -142,13 +142,13 @@ export default function DashboardCampaignModal({
       ></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col animate-slideUp">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
+        <div className="bg-[#05112b] text-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {getStatusIcon(campaign.status)}
               <div>
                 <h2 className="text-2xl font-bold">{campaign.name}</h2>
-                <p className="text-blue-100 text-sm">Campaign Details</p>
+                <p className="text-gray-300 text-sm">Campaign Details</p>
               </div>
             </div>
             <button
@@ -213,18 +213,18 @@ export default function DashboardCampaignModal({
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+            <div className="bg-gray-100 rounded-xl p-4 border border-gray-300">
               <div className="flex items-center justify-between mb-2">
-                <Mail className="w-5 h-5 text-blue-600" />
-                <span className="text-xs text-blue-600 font-medium">SENT</span>
+                <Mail className="w-5 h-5 text-[#05112b]" />
+                <span className="text-xs text-[#05112b] font-medium">SENT</span>
               </div>
-              <p className="text-2xl font-bold text-blue-900">
+              <p className="text-2xl font-bold text-[#05112b]">
                 {contactedCount}
               </p>
-              <p className="text-xs text-blue-600 mt-1">Emails delivered</p>
+              <p className="text-xs text-gray-600 mt-1">Emails delivered</p>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
               <div className="flex items-center justify-between mb-2">
                 <MailOpen className="w-5 h-5 text-green-600" />
                 <span className="text-xs text-green-600 font-medium">
@@ -237,7 +237,7 @@ export default function DashboardCampaignModal({
               <p className="text-xs text-green-600 mt-1">Open rate</p>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+            <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
               <div className="flex items-center justify-between mb-2">
                 <MessageSquare className="w-5 h-5 text-orange-600" />
                 <span className="text-xs text-orange-600 font-medium">
@@ -250,15 +250,15 @@ export default function DashboardCampaignModal({
               <p className="text-xs text-orange-600 mt-1">Reply rate</p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+            <div className="bg-gray-100 rounded-xl p-4 border border-gray-300">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-5 h-5 text-purple-600" />
-                <span className="text-xs text-purple-600 font-medium">
+                <Users className="w-5 h-5 text-[#05112b]" />
+                <span className="text-xs text-[#05112b] font-medium">
                   LEADS
                 </span>
               </div>
-              <p className="text-2xl font-bold text-purple-900">{leadCount}</p>
-              <p className="text-xs text-purple-600 mt-1">Total contacts</p>
+              <p className="text-2xl font-bold text-[#05112b]">{leadCount}</p>
+              <p className="text-xs text-gray-600 mt-1">Total contacts</p>
             </div>
           </div>
 
@@ -278,7 +278,7 @@ export default function DashboardCampaignModal({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                className="bg-[#05112b] h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${
                     leadCount > 0 ? (contactedCount / leadCount) * 100 : 0
@@ -294,9 +294,9 @@ export default function DashboardCampaignModal({
           {/* Campaign Details */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             {/* Email Content */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
+            <div className="bg-gray-100 rounded-xl border border-gray-300 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-2">
+                <div className="w-8 h-8 bg-[#05112b] rounded-lg flex items-center justify-center mr-2">
                   <Mail className="w-4 h-4 text-white" />
                 </div>
                 Email Template
@@ -357,7 +357,7 @@ export default function DashboardCampaignModal({
             {/* Follow-up & Schedule */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Target className="w-5 h-5 mr-2 text-purple-600" />
+                <Target className="w-5 h-5 mr-2 text-[#05112b]" />
                 Campaign Settings
               </h3>
 
@@ -432,7 +432,7 @@ export default function DashboardCampaignModal({
           {campaign.csvData && campaign.csvData.length > 0 && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-green-600" />
+                <Users className="w-5 h-5 mr-2 text-[#05112b]" />
                 All Leads ({campaign.csvData.length} total)
               </h3>
               <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
@@ -592,7 +592,7 @@ export default function DashboardCampaignModal({
                                     onClick={() => setCurrentPage(page)}
                                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors ${
                                       currentPage === page
-                                        ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                        ? "z-10 bg-gray-200 border-gray-400 text-[#05112b]"
                                         : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                                     }`}
                                   >
@@ -636,7 +636,7 @@ export default function DashboardCampaignModal({
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+            className="px-6 py-2 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-colors font-medium"
           >
             Close
           </button>

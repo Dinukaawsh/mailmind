@@ -93,10 +93,10 @@ export default function EditDomainModal({
         onClick={onClose}
       ></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Edit Domain</h2>
-            <p className="mt-1 text-sm text-blue-100">Update domain settings</p>
+            <p className="mt-1 text-sm text-gray-300">Update domain settings</p>
           </div>
           <button
             onClick={onClose}
@@ -180,18 +180,18 @@ export default function EditDomainModal({
           />
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t-2 border-gray-200">
+          <div className="grid grid-cols-2 gap-3 pt-6 border-t-2 border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+              className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg"
+              className="w-full px-6 py-3 bg-[#05112b] text-white font-bold rounded-xl hover:bg-[#05112b]/90 transition-all disabled:opacity-50 shadow-lg"
               disabled={loading}
             >
               {loading ? "Updating..." : "Update Domain"}

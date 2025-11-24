@@ -17,18 +17,16 @@ export default function MetricCard({
   icon,
 }: MetricCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-gray-400">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
             {title}
           </p>
-          <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            {value}
-          </p>
+          <p className="mt-3 text-4xl font-bold text-[#05112b]">{value}</p>
           {subtitle && (
             <p className="mt-2 text-sm text-gray-500 flex items-center">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+              <span className="w-1.5 h-1.5 bg-[#05112b] rounded-full mr-2"></span>
               {subtitle}
             </p>
           )}
@@ -61,7 +59,7 @@ export default function MetricCard({
           )}
         </div>
         {icon && (
-          <div className="ml-4 p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl text-blue-600">
+          <div className="ml-4 p-3 bg-gray-100 rounded-xl text-[#05112b]">
             {icon}
           </div>
         )}

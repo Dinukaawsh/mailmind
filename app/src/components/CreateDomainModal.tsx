@@ -110,10 +110,10 @@ export default function CreateDomainModal({
         onClick={onClose}
       ></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Add Gmail Domain</h2>
-            <p className="mt-1 text-sm text-blue-100">
+            <p className="mt-1 text-sm text-gray-300">
               Connect your Gmail account
             </p>
           </div>
@@ -139,7 +139,7 @@ export default function CreateDomainModal({
               value={gmailEmail}
               onChange={(e) => setGmailEmail(e.target.value)}
               placeholder="your.email@gmail.com"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 transition-all outline-none focus:outline-"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#beb7c9] focus:border-transparent text-gray-900 placeholder-gray-400 transition-all outline-none"
               required
             />
           </div>
@@ -155,7 +155,7 @@ export default function CreateDomainModal({
                 value={smtpPassword}
                 onChange={(e) => setSmtpPassword(e.target.value)}
                 placeholder="App password or Gmail password"
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
+                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#beb7c9] focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
                 required
               />
               <button
@@ -187,11 +187,11 @@ export default function CreateDomainModal({
               value={smtpHost}
               onChange={(e) => setSmtpHost(e.target.value)}
               placeholder="smtp.gmail.com"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#beb7c9] focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
             />
             <p className="mt-2 text-xs text-gray-500">
               Defaults to{" "}
-              <code className="bg-blue-100 px-1 py-0.5 rounded">
+              <code className="bg-gray-200 px-1 py-0.5 rounded">
                 smtp.gmail.com
               </code>{" "}
               if left untouched.
@@ -208,18 +208,18 @@ export default function CreateDomainModal({
               value={imapHost}
               onChange={(e) => setImapHost(e.target.value)}
               placeholder="imap.gmail.com"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#beb7c9] focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
             />
             <p className="mt-2 text-xs text-gray-500">
               Defaults to{" "}
-              <code className="bg-blue-100 px-1 py-0.5 rounded">
+              <code className="bg-gray-200 px-1 py-0.5 rounded">
                 imap.gmail.com
               </code>{" "}
               if left untouched.
             </p>
           </div>
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800">
+          <div className="p-3 bg-gray-100 border border-gray-300 rounded-lg">
+            <p className="text-xs text-gray-700">
               <strong>What happens:</strong> We send the email, password, and
               host to the automation webhook. The webhook will setup your Gmail
               account and automatically save the domain to the database.
@@ -228,36 +228,38 @@ export default function CreateDomainModal({
         </form>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={() => {
-              resetForm();
-              onClose();
-            }}
-            disabled={connectingGmail}
-            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={connectingGmail}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            {connectingGmail ? (
-              <>
-                <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                Setting up...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Setup Gmail
-              </>
-            )}
-          </button>
+        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                onClose();
+              }}
+              disabled={connectingGmail}
+              className="w-full px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={connectingGmail}
+              className="w-full px-6 py-2.5 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-all shadow-md hover:shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {connectingGmail ? (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Setup Gmail
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

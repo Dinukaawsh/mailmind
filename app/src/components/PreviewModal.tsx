@@ -39,10 +39,10 @@ export default function PreviewModal({
         onClick={onClose}
       ></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Email Preview</h2>
-            <p className="text-sm text-blue-100 mt-1">
+            <p className="text-sm text-gray-300 mt-1">
               Personalized email for this lead
             </p>
           </div>
@@ -55,8 +55,8 @@ export default function PreviewModal({
         </div>
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Lead Information */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
+          <div className="bg-gray-100 rounded-xl border border-gray-300 p-5">
+            <h3 className="text-sm font-bold text-[#05112b] mb-3 uppercase tracking-wide">
               Lead Information:
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -76,10 +76,10 @@ export default function PreviewModal({
           {/* Email Subject Preview */}
           {previewSubject && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
+              <h3 className="text-sm font-bold text-[#05112b] mb-3 uppercase tracking-wide">
                 Subject:
               </h3>
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4 text-gray-900 font-semibold shadow-sm">
+              <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4 text-gray-900 font-semibold shadow-sm">
                 {replacePlaceholders(previewSubject, lead)}
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function PreviewModal({
 
           {/* Email Body Preview */}
           <div>
-            <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
+            <h3 className="text-sm font-bold text-[#05112b] mb-3 uppercase tracking-wide">
               Email Body:
             </h3>
             <div className="bg-white border-2 border-gray-300 rounded-xl p-5 text-sm text-gray-900 shadow-sm min-h-[160px]">

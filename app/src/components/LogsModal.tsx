@@ -113,11 +113,11 @@ export default function LogsModal({
         onClick={onClose}
       ></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] flex flex-col overflow-hidden">
-        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Webhook Logs</h2>
             {campaignName && (
-              <p className="text-sm text-indigo-100 mt-1">{campaignName}</p>
+              <p className="text-sm text-gray-300 mt-1">{campaignName}</p>
             )}
           </div>
           <button
@@ -185,7 +185,7 @@ export default function LogsModal({
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-[#05112b] rounded-lg flex items-center justify-center">
                           <Mail className="w-4 h-4 text-white" />
                         </div>
                         <div>
@@ -212,8 +212,8 @@ export default function LogsModal({
 
                     <div className="space-y-2">
                       {log.subject && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                          <p className="text-xs font-bold text-purple-600 uppercase mb-1">
+                        <div className="bg-gray-100 border border-gray-300 rounded-lg p-3">
+                          <p className="text-xs font-bold text-[#05112b] uppercase mb-1">
                             Subject
                           </p>
                           <p className="text-sm text-gray-900 font-semibold">
@@ -268,15 +268,15 @@ export default function LogsModal({
                 </span>
               )}
               {!isComplete && (
-                <span className="text-sm font-bold text-blue-600 flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                  <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
+                <span className="text-sm font-bold text-[#05112b] flex items-center gap-2 bg-gray-200 px-3 py-1 rounded-full border border-gray-300">
+                  <span className="w-2 h-2 bg-[#05112b] rounded-full animate-pulse"></span>
                   Streaming...
                 </span>
               )}
             </div>
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+              className="px-6 py-2.5 bg-[#05112b] text-white font-bold rounded-xl hover:bg-[#05112b]/90 transition-all shadow-lg"
             >
               Close
             </button>

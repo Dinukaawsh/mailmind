@@ -436,10 +436,10 @@ export default function EditCampaignModal({
           onClick={onClose}
         ></div>
         <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-5 flex items-center justify-between">
+          <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Edit Campaign</h2>
-              <p className="mt-1 text-sm text-purple-100">
+              <p className="mt-1 text-sm text-gray-300">
                 Update campaign details and settings
               </p>
             </div>
@@ -572,11 +572,11 @@ export default function EditCampaignModal({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#beb7c9] transition-colors">
                     <div className="space-y-1 text-center">
                       <ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
                       <div className="flex text-sm text-gray-600">
-                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#05112b] hover:text-[#05112b]/80">
                           <span>Upload image</span>
                           <input
                             type="file"
@@ -655,15 +655,15 @@ export default function EditCampaignModal({
                     </button>
                   </div>
                   {csvColumns.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs font-medium text-blue-900 mb-2">
+                    <div className="bg-gray-100 border border-gray-300 rounded-lg p-3">
+                      <p className="text-xs font-medium text-gray-900 mb-2">
                         Available CSV Columns:
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {csvColumns.map((col) => (
                           <span
                             key={col}
-                            className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-mono"
+                            className="px-2 py-1 bg-gray-200 text-[#05112b] rounded text-xs font-mono"
                           >
                             {col}
                           </span>
@@ -673,11 +673,11 @@ export default function EditCampaignModal({
                   )}
                 </div>
               ) : (
-                <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#beb7c9] transition-colors">
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-8 w-8 text-gray-400" />
                     <div className="flex text-sm text-gray-600">
-                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#05112b] hover:text-[#05112b]/80">
                         <span>Upload a file</span>
                         <input
                           type="file"
@@ -754,7 +754,7 @@ export default function EditCampaignModal({
                                       };
                                       setCsvData(updatedData);
                                     }}
-                                    className="w-full min-w-[180px] px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 placeholder-gray-400 outline-none transition-all"
+                                    className="w-full min-w-[180px] px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9] text-gray-900 placeholder-gray-400 outline-none transition-all"
                                     placeholder={`Enter ${key.toLowerCase()}`}
                                   />
                                 </td>
@@ -772,7 +772,7 @@ export default function EditCampaignModal({
                                       bodyImage
                                     )
                                   }
-                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="p-2 text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-100 rounded-lg transition-colors"
                                   title="Preview email for this lead"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -815,7 +815,7 @@ export default function EditCampaignModal({
                             toast.error("Please upload CSV first");
                           }
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-sm text-[#05112b] hover:text-[#05112b]/80 font-medium"
                       >
                         + Add New Lead
                       </button>
@@ -837,11 +837,11 @@ export default function EditCampaignModal({
             )}
 
             {/* Submit Buttons */}
-            <div className="flex items-center justify-end space-x-4 pt-6 border-t-2 border-gray-200">
+            <div className="grid grid-cols-2 gap-4 pt-6 border-t-2 border-gray-200">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
                 disabled={loading}
               >
                 Cancel
@@ -849,7 +849,7 @@ export default function EditCampaignModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 shadow-lg"
+                className="w-full px-6 py-3 bg-[#05112b] text-white font-bold rounded-xl hover:bg-[#05112b]/90 transition-all disabled:opacity-50 shadow-lg"
               >
                 {loading ? "Updating..." : "Update Campaign"}
               </button>
