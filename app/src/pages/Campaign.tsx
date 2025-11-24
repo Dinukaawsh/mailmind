@@ -157,6 +157,28 @@ export default function CampaignsPage() {
     };
   }, []);
 
+  // Poll more frequently when campaigns are being processed
+  useEffect(() => {
+    const processingCampaigns = campaigns.filter(
+      (c) => c.processingStatus === "processing"
+    );
+
+    if (processingCampaigns.length > 0) {
+      console.log(
+        `🔄 Found ${processingCampaigns.length} campaign(s) being processed. Starting fast polling...`
+      );
+      const interval = setInterval(() => {
+        console.log("🔄 Polling for campaign processing status updates...");
+        loadCampaigns();
+      }, 5000); // Poll every 5 seconds when campaigns are processing
+
+      return () => {
+        console.log("✅ Stopping campaign processing poll");
+        clearInterval(interval);
+      };
+    }
+  }, [campaigns]);
+
   // Cleanup polling intervals on unmount
   useEffect(() => {
     return () => {
@@ -1153,10 +1175,15 @@ export default function CampaignsPage() {
                                 campaign.status.slice(1)}
                             </span>
                           </span>
-                          {campaign.isProcessing && (
-                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold text-amber-700 bg-amber-100 rounded-full border border-amber-300">
-                              <span className="animate-pulse mr-1">⏳</span>
+                          {campaign.processingStatus === "processing" && (
+                            <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                              <Clock className="w-3 h-3 mr-1 animate-spin" />
                               Processing...
+                            </span>
+                          )}
+                          {campaign.processingStatus === "error" && (
+                            <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
+                              ⚠️ Process Error
                             </span>
                           )}
                         </div>
@@ -1195,40 +1222,49 @@ export default function CampaignsPage() {
                               </button>
                               <button
                                 className={`p-2 rounded-lg transition-all border border-transparent ${
-                                  campaign.isProcessing
-                                    ? "text-gray-400 cursor-not-allowed opacity-50"
-                                    : isWithinAllowedHours()
+                                  isWithinAllowedHours() &&
+                                  campaign.processingStatus === "ready"
                                     ? "text-green-600 hover:bg-green-50 hover:border-green-200"
                                     : "text-gray-400 cursor-not-allowed opacity-50"
                                 }`}
                                 title={
-                                  campaign.isProcessing
+                                  campaign.processingStatus === "processing"
                                     ? "Campaign is being processed by webhook. Please wait..."
-                                    : isWithinAllowedHours()
-                                    ? "Launch Campaign"
-                                    : `Available 8 AM - 6 PM Paris time. Current: ${
+                                    : campaign.processingStatus === "error"
+                                    ? "Campaign processing failed. Please try recreating the campaign."
+                                    : !isWithinAllowedHours()
+                                    ? `Available 8 AM - 6 PM Paris time. Current: ${
                                         currentParisTime || "Loading..."
                                       }`
+                                    : "Launch Campaign"
                                 }
                                 onClick={() => {
-                                  if (campaign.isProcessing) {
+                                  if (campaign.processingStatus === "processing") {
                                     toast.error(
-                                      "Campaign is being processed. Please wait for processing to complete."
+                                      "Campaign is still being processed. Please wait..."
                                     );
-                                  } else if (isWithinAllowedHours()) {
-                                    handleStartCampaign(campaign.id);
-                                  } else {
+                                  } else if (campaign.processingStatus === "error") {
+                                    toast.error(
+                                      "Campaign processing failed. Please try recreating the campaign."
+                                    );
+                                  } else if (!isWithinAllowedHours()) {
                                     toast.error(
                                       `Campaign can only be sent between 8 AM - 6 PM Paris time. Current time: ${currentParisTime}`
                                     );
+                                  } else {
+                                    handleStartCampaign(campaign.id);
                                   }
                                 }}
                                 disabled={
                                   !isWithinAllowedHours() ||
-                                  campaign.isProcessing
+                                  campaign.processingStatus !== "ready"
                                 }
                               >
-                                <Play className="w-5 h-5" />
+                                {campaign.processingStatus === "processing" ? (
+                                  <Clock className="w-5 h-5 animate-spin" />
+                                ) : (
+                                  <Play className="w-5 h-5" />
+                                )}
                               </button>
                               {/* Live/Streaming Logs Button */}
                               {campaignLogs[campaign.id] &&

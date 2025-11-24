@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
 
 /**
- * Processing Complete Callback Route
- * Called by the n8n webhook when campaign processing is complete
+ * Manual endpoint to mark a campaign as ready
+ * POST: Manually mark a campaign as ready (for testing or recovery)
  */
 
 let client: MongoClient | null = null;
@@ -20,27 +20,19 @@ async function getMongoClient() {
   return client;
 }
 
-// POST: Mark campaign processing as complete
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
   try {
+    const { id } = await params;
+
+    console.log(`🔧 Manually marking campaign ${id} as ready`);
+
     if (!process.env.MONGODB_URI || !process.env.MONGODB_DATABASE) {
       return NextResponse.json(
-        {
-          error:
-            "MongoDB configuration missing. Please set MONGODB_URI and MONGODB_DATABASE.",
-        },
+        { error: "MongoDB configuration missing" },
         { status: 500 }
-      );
-    }
-
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid campaign ID" },
-        { status: 400 }
       );
     }
 
@@ -48,44 +40,38 @@ export async function POST(
     const db = mongoClient.db(process.env.MONGODB_DATABASE || "mailmind");
     const collection = db.collection("campaigns");
 
-    // Check if campaign exists
+    // Validate campaign exists
     const campaign = await collection.findOne({ _id: new ObjectId(id) });
-
     if (!campaign) {
-      console.error(`❌ Campaign ${id} not found`);
       return NextResponse.json(
         { error: "Campaign not found" },
         { status: 404 }
       );
     }
 
-    console.log(`📥 Received processing-complete callback for campaign ${id}`);
-    console.log(`   Current status: isProcessing=${campaign.isProcessing}`);
-
-    // Mark processing as complete
-    const updateResult = await collection.updateOne(
+    // Update processing status to ready
+    await collection.updateOne(
       { _id: new ObjectId(id) },
       {
         $set: {
-          isProcessing: false,
-          processedAt: new Date().toISOString(),
+          processingStatus: "ready",
         },
       }
     );
 
-    console.log(`✅ Campaign ${id} processing marked as complete`);
-    console.log(`   Updated ${updateResult.modifiedCount} document(s)`);
+    console.log(`✅ Campaign ${id} marked as ready`);
 
     return NextResponse.json({
       success: true,
-      message: "Campaign processing marked as complete",
+      message: `Campaign marked as ready`,
       campaignId: id,
+      processingStatus: "ready",
     });
   } catch (error: any) {
-    console.error("Processing Complete Callback Error:", error);
+    console.error("Error marking campaign as ready:", error);
     return NextResponse.json(
       {
-        error: "Failed to mark campaign processing as complete",
+        error: "Failed to mark campaign as ready",
         message: error.message,
       },
       { status: 500 }

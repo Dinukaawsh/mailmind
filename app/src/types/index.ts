@@ -21,8 +21,7 @@ export interface Campaign {
   followUpDelay?: number;
   csvData?: any[]; // Lead data from CSV
   isActive?: boolean; // Soft delete flag - false means archived
-  isProcessing?: boolean; // Webhook is processing the campaign
-  processedAt?: string; // When webhook processing completed
+  processingStatus?: "pending" | "processing" | "ready" | "error"; // Webhook processing status
 }
 
 export interface CampaignReply {

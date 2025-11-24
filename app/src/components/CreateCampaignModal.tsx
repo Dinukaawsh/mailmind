@@ -452,10 +452,20 @@ export default function CreateCampaignModal({
         csvData: normalizedCsvData,
       };
 
-      await campaignApi.create(campaignData as any);
+      const createdCampaign = await campaignApi.create(campaignData as any);
       toast.success(
-        `Campaign created successfully with ${selectedLeads.size} lead(s)!`
+        `Campaign created successfully with ${selectedLeads.size} lead(s)! Processing will begin shortly.`,
+        { duration: 5000 }
       );
+
+      // Show info about processing status
+      if (createdCampaign.processingStatus === "processing") {
+        toast.loading(
+          "Campaign is being processed by the webhook. The launch button will be available once processing is complete.",
+          { id: "processing-info", duration: 7000 }
+        );
+      }
+
       resetForm();
       onClose();
       if (onSuccess) {
