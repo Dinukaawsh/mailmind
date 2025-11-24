@@ -10,6 +10,7 @@ export interface Campaign {
   createdAt: string;
   startDate?: string;
   startTime?: string;
+  startDateTime?: string;
   domainId: string;
   template?: string;
   subject?: string;
@@ -19,6 +20,28 @@ export interface Campaign {
   followUpTemplate?: string;
   followUpDelay?: number;
   csvData?: any[]; // Lead data from CSV
+  isActive?: boolean; // Soft delete flag - false means archived
+  processingStatus?: "pending" | "processing" | "ready" | "error"; // Webhook processing status
+}
+
+export interface CampaignReply {
+  id: string;
+  campaignId: string;
+  leadEmail: string;
+  leadName?: string;
+  subject?: string;
+  body: string;
+  receivedAt: string;
+  status?: "unread" | "read" | "flagged";
+  threadId?: string;
+  messageId?: string;
+  leadData?: Record<string, any>;
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    size: number;
+    url?: string;
+  }>;
 }
 
 export interface Domain {
@@ -28,7 +51,8 @@ export interface Domain {
   lastSyncTime?: string;
   emailsSentPerDay: number;
   type: "gmail" | "custom";
-  provider?: string;
+  webhookUrl?: string;
+  createdAt?: string;
 }
 
 export interface Unsubscriber {
@@ -51,9 +75,7 @@ export interface DashboardMetrics {
 export interface CampaignPerformance {
   date: string;
   sent: number;
-  opens: number;
   replies: number;
-  bounces: number;
 }
 
 export interface Lead {

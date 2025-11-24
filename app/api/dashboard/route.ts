@@ -58,25 +58,29 @@ export async function GET() {
 
     // Fetch campaigns
     const campaignsCollection = db.collection("campaigns");
-    const campaigns = await campaignsCollection.find({}).toArray();
+    const allCampaigns = await campaignsCollection.find({}).toArray();
+    // Filter to only include active (not archived) campaigns
+    const campaigns = allCampaigns.filter(
+      (c) => c.isActive !== false // Default to true for backward compatibility
+    );
 
     // Fetch unsubscribers
     const unsubscribersCollection = db.collection("unsubscribeLogs");
     const unsubscribers = await unsubscribersCollection.find({}).toArray();
 
-    // Calculate metrics
+    // Calculate metrics (only for active campaigns)
     const totalCampaigns = campaigns.length;
     const activeCampaigns = campaigns.filter(
       (c) => c.status === "active"
     ).length;
 
-    // Calculate total leads contacted (sum of all csvData lengths)
+    // Calculate total leads contacted (sum of all csvData lengths from active campaigns)
     const totalLeadsContacted = campaigns.reduce((sum, campaign) => {
       const csvData = campaign.csvData || [];
       return sum + csvData.length;
     }, 0);
 
-    // Calculate average rates
+    // Calculate average rates (only for active campaigns)
     const campaignsWithRates = campaigns.filter(
       (c) =>
         c.openRate !== undefined ||
@@ -120,17 +124,20 @@ export async function GET() {
       recentReplies,
     };
 
-    // Fetch recent activity
+    // Fetch recent activity (only for active campaigns)
     // 1. Recently created campaigns (last 10, sorted by createdAt desc)
     const recentCampaigns = await campaignsCollection
-      .find({})
+      .find({ $or: [{ isActive: { $ne: false } }, { isActive: { $exists: false } }] })
       .sort({ createdAt: -1 })
       .limit(10)
       .toArray();
 
     // 2. Recently sent campaigns (campaigns with lastSentAt field, sorted by lastSentAt desc)
     const recentSentCampaigns = await campaignsCollection
-      .find({ lastSentAt: { $exists: true } })
+      .find({
+        lastSentAt: { $exists: true },
+        $or: [{ isActive: { $ne: false } }, { isActive: { $exists: false } }]
+      })
       .sort({ lastSentAt: -1 })
       .limit(10)
       .toArray();

@@ -24,26 +24,46 @@ import {
   MailOpen,
   MessageSquare,
   UserX,
+  PlayCircle,
+  PauseCircle,
+  CheckCircle,
+  Calendar,
+  Target,
+  Activity,
+  Eye,
+  Clock,
+  ArrowUpRight,
+  Info,
 } from "lucide-react";
-import { dashboardApi } from "../utils/api";
+import { dashboardApi, campaignApi } from "../utils/api";
 import {
   DashboardMetrics,
   CampaignPerformance,
   RecentActivity,
+  Campaign,
 } from "../types";
 import MetricCard from "../components/MetricCard";
 import toast from "react-hot-toast";
+import DashboardCampaignModal from "../components/DashboardCampaignModal";
+import LoadingSpinner from "../components/Loading/LoadingSpinner";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [performance, setPerformance] = useState<CampaignPerformance[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [domainData, setDomainData] = useState<
     { name: string; value: number }[]
   >([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [campaignStats, setCampaignStats] = useState<
+    Record<string, { sentCount: number; repliesCount: number }>
+  >({});
 
   useEffect(() => {
     loadData();
@@ -59,26 +79,114 @@ export default function Dashboard() {
       setMetrics(dashboardData.metrics);
       setRecentActivity(dashboardData.recentActivity);
 
-      // For performance data, we'll use mock data for now
-      // TODO: Implement performance tracking API when available
-      const mockPerformance: CampaignPerformance[] = Array.from(
-        { length: 30 },
-        (_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (29 - i));
-          return {
-            date: date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            }),
-            sent: Math.floor(Math.random() * 200) + 50,
-            opens: Math.floor(Math.random() * 100) + 20,
-            replies: Math.floor(Math.random() * 20) + 2,
-            bounces: Math.floor(Math.random() * 5),
-          };
-        }
+      // Fetch campaigns
+      const campaignsData = await campaignApi.getAll();
+      // Filter to show only active campaigns (not archived)
+      const activeCampaigns = campaignsData.filter((c) => c.isActive !== false);
+      setCampaigns(activeCampaigns);
+
+      // Fetch stats (sent and replies) for each campaign
+      const stats: Record<string, { sentCount: number; repliesCount: number }> =
+        {};
+      await Promise.all(
+        activeCampaigns.map(async (campaign) => {
+          try {
+            // Fetch logs to count sent emails
+            const logsResponse = await fetch(
+              `/api/campaigns/${campaign.id}/logs/history`
+            );
+            let sentCount = 0;
+            if (logsResponse.ok) {
+              const logsData = await logsResponse.json();
+              const logs = logsData.logs || [];
+              sentCount = logs.filter((log: string) => {
+                if (log.includes("✅") || log.includes("📧")) return false;
+                try {
+                  const parsed = JSON.parse(log);
+                  return parsed.Email && parsed.Status;
+                } catch {
+                  return false;
+                }
+              }).length;
+            }
+
+            // Fetch replies
+            const repliesResponse = await fetch(
+              `/api/campaigns/${campaign.id}/replies`
+            );
+            let repliesCount = 0;
+            if (repliesResponse.ok) {
+              const repliesData = await repliesResponse.json();
+              repliesCount = (repliesData.replies || []).length;
+            }
+
+            stats[campaign.id] = {
+              sentCount: sentCount > 0 ? sentCount : campaign.sentCount || 0,
+              repliesCount,
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching stats for campaign ${campaign.id}:`,
+              error
+            );
+            stats[campaign.id] = {
+              sentCount: campaign.sentCount || 0,
+              repliesCount: 0,
+            };
+          }
+        })
       );
-      setPerformance(mockPerformance);
+      setCampaignStats(stats);
+
+      // Generate performance data from actual campaigns
+      // Group campaigns by date and aggregate metrics
+      const performanceMap = new Map<
+        string,
+        {
+          sent: number;
+          replies: number;
+        }
+      >();
+
+      // Initialize last 30 days
+      for (let i = 0; i < 30; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (29 - i));
+        const dateKey = date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        performanceMap.set(dateKey, {
+          sent: 0,
+          replies: 0,
+        });
+      }
+
+      // Aggregate campaign data based on actual stats from logs and replies
+      activeCampaigns.forEach((campaign) => {
+        const campaignDate = new Date(campaign.createdAt);
+        const dateKey = campaignDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+
+        const existing = performanceMap.get(dateKey);
+        if (existing) {
+          // Use actual sent count from stats (logs)
+          existing.sent += stats[campaign.id]?.sentCount || 0;
+          // Use actual replies count from stats (replies collection)
+          existing.replies += stats[campaign.id]?.repliesCount || 0;
+        }
+      });
+
+      const performanceData: CampaignPerformance[] = Array.from(
+        performanceMap.entries()
+      ).map(([date, metrics]) => ({
+        date,
+        ...metrics,
+      }));
+
+      setPerformance(performanceData);
     } catch (error) {
       toast.error("Failed to load dashboard data");
       console.error(error);
@@ -93,7 +201,9 @@ export default function Dashboard() {
       try {
         // Fetch campaigns to calculate domain usage
         const { campaignApi } = await import("../utils/api");
-        const campaigns = await campaignApi.getAll();
+        const allCampaigns = await campaignApi.getAll();
+        // Filter to show only active campaigns (not archived)
+        const campaigns = allCampaigns.filter((c) => c.isActive !== false);
 
         // Fetch domains to get domain names
         const { domainApi } = await import("../utils/api");
@@ -135,105 +245,206 @@ export default function Dashboard() {
 
   if (loading && !metrics) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading dashboard...</div>
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner />
       </div>
     );
   }
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "active":
+        return <PlayCircle className="w-5 h-5 text-green-500" />;
+      case "paused":
+        return <PauseCircle className="w-5 h-5 text-yellow-500" />;
+      case "completed":
+        return <CheckCircle className="w-5 h-5 text-blue-500" />;
+      default:
+        return <Mail className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "paused":
+        return "bg-yellow-100 text-yellow-800";
+      case "completed":
+        return "bg-blue-100 text-blue-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-600">
-          Overview of your email outreach campaigns
-        </p>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gray-100 rounded-xl border border-gray-300">
+                <Mail className="w-8 h-8 text-[#05112b]" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-[#05112b]">Dashboard</h1>
+                <p className="mt-1 text-gray-600 flex items-center">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Real-time overview of your email outreach campaigns
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <Clock className="w-4 h-4" />
+            <span>Last updated: {new Date().toLocaleTimeString()}</span>
+          </div>
+        </div>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Total Campaigns"
-          value={metrics?.totalCampaigns || 0}
-          subtitle={`${metrics?.activeCampaigns || 0} active`}
-          icon={<Mail className="w-8 h-8" />}
-        />
-        <MetricCard
-          title="Leads Contacted"
-          value={metrics?.totalLeadsContacted.toLocaleString() || 0}
-          trend={{ value: 12, isPositive: true }}
-          icon={<Users className="w-8 h-8" />}
-        />
-        {/* <MetricCard
-          title="Open Rate"
-          value={`${metrics?.averageOpenRate.toFixed(1) || 0}%`}
-          trend={{ value: 5.2, isPositive: true }}
-          icon={<MailOpen className="w-8 h-8" />}
-        />
-        <MetricCard
-          title="Reply Rate"
-          value={`${metrics?.averageReplyRate.toFixed(1) || 0}%`}
-          trend={{ value: 2.1, isPositive: true }}
-          icon={<MessageSquare className="w-8 h-8" />}
-        />
-        <MetricCard
-          title="Bounce Rate"
-          value={`${metrics?.averageBounceRate.toFixed(1) || 0}%`}
-          trend={{ value: 0.5, isPositive: true }}
-          icon={<TrendingDown className="w-8 h-8" />}
-        /> */}
-        <MetricCard
-          title="Unsubscribes"
-          value={metrics?.totalUnsubscribes || 0}
-          icon={<UserX className="w-8 h-8" />}
-        />
-        {/* <MetricCard
-          title="Recent Replies"
-          value={metrics?.recentReplies || 0}
-          subtitle="Last 7 days"
-          icon={<TrendingUp className="w-8 h-8" />}
-        /> */}
+        <div className="transform transition-all hover:scale-105">
+          <MetricCard
+            title="Total Campaigns"
+            value={metrics?.totalCampaigns || 0}
+            subtitle={`${metrics?.activeCampaigns || 0} active`}
+            icon={<Mail className="w-8 h-8" />}
+          />
+        </div>
+        <div className="transform transition-all hover:scale-105">
+          <MetricCard
+            title="Leads Contacted"
+            value={metrics?.totalLeadsContacted.toLocaleString() || 0}
+            trend={{ value: 12, isPositive: true }}
+            icon={<Users className="w-8 h-8" />}
+          />
+        </div>
+        <div className="transform transition-all hover:scale-105">
+          <MetricCard
+            title="Unsubscribes"
+            value={metrics?.totalUnsubscribes || 0}
+            icon={<UserX className="w-8 h-8" />}
+          />
+        </div>
+        <div className="transform transition-all hover:scale-105">
+          <MetricCard
+            title="Success Rate"
+            value={`${(
+              ((metrics?.totalLeadsContacted || 0) /
+                ((metrics?.totalLeadsContacted || 0) +
+                  (metrics?.totalUnsubscribes || 1))) *
+              100
+            ).toFixed(1)}%`}
+            trend={{ value: 5.2, isPositive: true }}
+            icon={<Target className="w-8 h-8" />}
+          />
+        </div>
+      </div>
+
+      {/* Active Campaigns Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-[#05112b] flex items-center">
+            <Mail className="w-6 h-6 mr-2 text-[#05112b]" />
+            Active Campaigns
+          </h2>
+          <span className="px-3 py-1 text-sm font-medium text-[#05112b] bg-gray-200 rounded-full">
+            {campaigns.filter((c) => c.status === "active").length} Active
+          </span>
+        </div>
+
+        {campaigns.length === 0 ? (
+          <div className="text-center py-12">
+            <Mail className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 text-lg">No campaigns yet</p>
+            <p className="text-gray-400 text-sm mt-2">
+              Create your first campaign to get started
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {campaigns.slice(0, 6).map((campaign) => (
+              <div
+                key={campaign.id}
+                onClick={() => setSelectedCampaign(campaign)}
+                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-lg border-2 border-gray-200 p-5 cursor-pointer transition-all duration-300 hover:border-gray-400 hover:shadow-lg hover:-translate-y-1"
+              >
+                {/* Status Badge */}
+                <div className="absolute top-3 right-3">
+                  {getStatusIcon(campaign.status)}
+                </div>
+
+                {/* Campaign Info */}
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1 pr-8 truncate group-hover:text-[#05112b] transition-colors">
+                    {campaign.name}
+                  </h3>
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-medium rounded ${getStatusBadgeClass(
+                      campaign.status
+                    )}`}
+                  >
+                    {campaign.status.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-white rounded-lg p-3 border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Sent</span>
+                      <Mail className="w-3 h-3 text-blue-500" />
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 mt-1">
+                      {campaignStats[campaign.id]?.sentCount || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Replies</span>
+                      <MessageSquare className="w-3 h-3 text-orange-500" />
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 mt-1">
+                      {campaignStats[campaign.id]?.repliesCount || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div className="flex items-center text-xs text-gray-500 mb-2">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  {new Date(campaign.createdAt).toLocaleDateString()}
+                </div>
+
+                {/* View Details Button */}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                  <span className="text-xs text-gray-400">
+                    Click for details
+                  </span>
+                  <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-[#05112b] transition-colors" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {campaigns.length > 6 && (
+          <div className="mt-6 text-center">
+            <button className="px-6 py-2 text-sm font-medium text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-100 rounded-lg transition-colors">
+              View All Campaigns →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Campaign Performance Chart */}
-        {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Campaign Performance (30 Days)
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={performance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="sent"
-                stroke="#3b82f6"
-                name="Sent"
-              />
-              <Line
-                type="monotone"
-                dataKey="opens"
-                stroke="#10b981"
-                name="Opens"
-              />
-              <Line
-                type="monotone"
-                dataKey="replies"
-                stroke="#f59e0b"
-                name="Replies"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div> */}
-
         {/* Domain Usage Distribution */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 transform transition-all hover:shadow-lg">
+          <h2 className="text-xl font-bold text-[#05112b] mb-4 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-[#05112b]" />
             Domain Usage Distribution
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -262,43 +473,120 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Campaign Performance Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 transform transition-all hover:shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-[#05112b] flex items-center">
+              <Activity className="w-5 h-5 mr-2 text-[#05112b]" />
+              Performance Trend (30 Days)
+            </h2>
+            <div className="group relative">
+              <Info className="w-5 h-5 text-gray-400 cursor-help" />
+              <div className="absolute right-0 top-8 w-80 bg-gray-900 text-white text-xs rounded-lg p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 shadow-xl">
+                <p className="font-semibold mb-2">📊 Real Campaign Data</p>
+                <p className="mb-2">
+                  This chart shows aggregated metrics from your actual
+                  campaigns.
+                </p>
+                <p className="text-gray-300">
+                  • <strong>Sent</strong>: Actual emails sent from webhook logs
+                  <br />• <strong>Replies</strong>: Actual replies from database
+                  {performance.every((p) => p.replies === 0) && (
+                    <>
+                      <br />
+                      <br />
+                      <span className="text-yellow-300">
+                        ⚠️ No replies detected yet. Replies will appear here
+                        once your webhook stores them in the database.
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={performance}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "white",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="sent"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                name="Sent"
+                dot={{ fill: "#3b82f6", r: 4 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="replies"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                name="Replies"
+                dot={{ fill: "#f59e0b", r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-xl font-bold text-[#05112b] mb-6 flex items-center">
+          <Clock className="w-5 h-5 mr-2 text-[#05112b]" />
           Recent Activity
         </h2>
         {recentActivity.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No recent activity to display
+          <div className="text-center py-12">
+            <Activity className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500">No recent activity to display</p>
           </div>
         ) : (
           <div className="space-y-3">
             {recentActivity.map((activity, index) => {
               const badgeColors = {
-                blue: "text-blue-700 bg-blue-50",
-                green: "text-green-700 bg-green-50",
-                red: "text-red-700 bg-red-50",
+                blue: "text-blue-700 bg-blue-50 border-blue-200",
+                green: "text-green-700 bg-green-50 border-green-200",
+                red: "text-red-700 bg-red-50 border-red-200",
               };
 
               return (
                 <div
                   key={index}
-                  className={`flex items-center justify-between py-2 ${
-                    index < recentActivity.length - 1
-                      ? "border-b border-gray-100"
-                      : ""
-                  }`}
+                  className="flex items-center justify-between py-4 px-4 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {activity.title}
-                    </p>
-                    <p className="text-xs text-gray-500">{activity.subtitle}</p>
+                  <div className="flex items-center space-x-4">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        activity.badge.color === "blue"
+                          ? "bg-blue-500"
+                          : activity.badge.color === "green"
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                      }`}
+                    ></div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.title}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {activity.subtitle}
+                      </p>
+                    </div>
                   </div>
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded ${
+                    className={`px-3 py-1 text-xs font-medium rounded-full border ${
                       badgeColors[activity.badge.color]
                     }`}
                   >
@@ -310,6 +598,14 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Campaign Details Modal */}
+      {selectedCampaign && (
+        <DashboardCampaignModal
+          campaign={selectedCampaign}
+          onClose={() => setSelectedCampaign(null)}
+        />
+      )}
     </div>
   );
 }

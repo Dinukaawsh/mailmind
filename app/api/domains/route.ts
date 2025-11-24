@@ -48,7 +48,8 @@ export async function GET() {
       lastSyncTime: item.lastSyncTime || new Date().toISOString(),
       emailsSentPerDay: item.emailsSentPerDay || 0,
       type: item.type || "custom",
-      provider: item.provider || "",
+      webhookUrl: item.webhookUrl || "",
+      createdAt: item.createdAt || "",
     }));
 
     return NextResponse.json(formattedData);
@@ -65,6 +66,9 @@ export async function GET() {
 }
 
 // POST: Create a new domain
+// NOTE: This endpoint is no longer used in the main flow.
+// Domain creation is now handled by the n8n webhook which writes directly to MongoDB.
+// This endpoint is kept for backward compatibility or manual testing purposes only.
 export async function POST(request: Request) {
   try {
     if (!process.env.MONGODB_URI || !process.env.MONGODB_DATABASE) {
@@ -78,7 +82,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, type } = body;
+    const { name, type, webhookUrl } = body;
 
     // Validate required fields
     if (!name || !type) {
@@ -108,7 +112,7 @@ export async function POST(request: Request) {
       status: "connected",
       emailsSentPerDay: 0,
       lastSyncTime: new Date().toISOString(),
-      provider: type === "gmail" ? "Gmail" : "",
+      webhookUrl: webhookUrl || "",
       createdAt: new Date().toISOString(),
     };
 

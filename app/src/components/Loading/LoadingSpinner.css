@@ -1,0 +1,127 @@
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 9999;
+}
+
+.dot-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 24px;
+}
+
+.dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border-radius: 50%;
+  background: #3f3d56;
+  animation: fade 1.2s linear infinite;
+}
+
+@keyframes fade {
+  0%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+  60% { opacity: 0.2; }
+}
+
+/* Generate circle with even angle spacing */
+.dot1  { transform: rotate(0deg)   translate(32px); animation-delay: 0s;   }
+.dot2  { transform: rotate(30deg)  translate(32px); animation-delay: 0.1s; }
+.dot3  { transform: rotate(60deg)  translate(32px); animation-delay: 0.2s; }
+.dot4  { transform: rotate(90deg)  translate(32px); animation-delay: 0.3s; }
+.dot5  { transform: rotate(120deg) translate(32px); animation-delay: 0.4s; }
+.dot6  { transform: rotate(150deg) translate(32px); animation-delay: 0.5s; }
+.dot7  { transform: rotate(180deg) translate(32px); animation-delay: 0.6s; }
+.dot8  { transform: rotate(210deg) translate(32px); animation-delay: 0.7s; }
+.dot9  { transform: rotate(240deg) translate(32px); animation-delay: 0.8s; }
+.dot10 { transform: rotate(270deg) translate(32px); animation-delay: 0.9s; }
+.dot11 { transform: rotate(300deg) translate(32px); animation-delay: 1.0s; }
+.dot12 { transform: rotate(330deg) translate(32px); animation-delay: 1.1s; }
+
+.loading-text {
+  font-size: 1.25rem;
+  color: #3f3d56;
+  font-family: sans-serif;
+  letter-spacing: 1.5px;
+  display: flex;
+  gap: 0.2rem;
+}
+
+.loading-text span {
+  animation: blink 1.2s infinite;
+  opacity: 0.5;
+}
+
+.loading-text span:nth-child(1) { animation-delay: 0s; }
+.loading-text span:nth-child(2) { animation-delay: 0.2s; }
+.loading-text span:nth-child(3) { animation-delay: 0.4s; }
+.loading-text span:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes blink {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.spinner-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* No overlay, no fixed position, no background */
+}
+
+.spinner-inline .dot-spinner {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+}
+
+.spinner-inline .dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+}
+
+.spinner-inline .dot1  { transform: rotate(0deg)   translate(16px); }
+.spinner-inline .dot2  { transform: rotate(30deg)  translate(16px); }
+.spinner-inline .dot3  { transform: rotate(60deg)  translate(16px); }
+.spinner-inline .dot4  { transform: rotate(90deg)  translate(16px); }
+.spinner-inline .dot5  { transform: rotate(120deg) translate(16px); }
+.spinner-inline .dot6  { transform: rotate(150deg) translate(16px); }
+.spinner-inline .dot7  { transform: rotate(180deg) translate(16px); }
+.spinner-inline .dot8  { transform: rotate(210deg) translate(16px); }
+.spinner-inline .dot9  { transform: rotate(240deg) translate(16px); }
+.spinner-inline .dot10 { transform: rotate(270deg) translate(16px); }
+.spinner-inline .dot11 { transform: rotate(300deg) translate(16px); }
+.spinner-inline .dot12 { transform: rotate(330deg) translate(16px); }
+
+.center-spinner2 {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-spinner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-inline .loading-text {
+  font-size: 0.9rem;
+}

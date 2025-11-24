@@ -7,6 +7,8 @@ import Papa from "papaparse";
 import toast from "react-hot-toast";
 import RemoveLeadsConfirmModal from "./RemoveLeadsConfirmModal";
 import RemoveLeadConfirmModal from "./RemoveLeadConfirmModal";
+import { Dropdown, DropdownOption, Input, DatePicker, TimePicker } from "./ui";
+import TemplateEditor from "./ui/TemplateEditor";
 
 interface EditCampaignModalProps {
   isOpen: boolean;
@@ -59,6 +61,12 @@ export default function EditCampaignModal({
     startDate: campaign.startDate || "",
     startTime: campaign.startTime || "",
   });
+  const [errors, setErrors] = useState({
+    name: "",
+    domainId: "",
+    subject: "",
+    template: "",
+  });
   // Initialize with S3 URL if available, otherwise fallback to bodyImage (for backward compatibility)
   const [bodyImage, setBodyImage] = useState<string>(
     campaign.bodyImageS3Url || campaign.bodyImage || ""
@@ -82,6 +90,12 @@ export default function EditCampaignModal({
         followUpDelay: campaign.followUpDelay || 7,
         startDate: campaign.startDate || "",
         startTime: campaign.startTime || "",
+      });
+      setErrors({
+        name: "",
+        domainId: "",
+        subject: "",
+        template: "",
       });
       // Reset image state from campaign (will be empty if deleted)
       setBodyImage(campaign.bodyImageS3Url || campaign.bodyImage || "");
@@ -300,8 +314,59 @@ export default function EditCampaignModal({
     return data.url;
   };
 
+  const validateForm = (): boolean => {
+    const newErrors = {
+      name: "",
+      domainId: "",
+      subject: "",
+      template: "",
+    };
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Campaign name is required";
+    }
+
+    if (!formData.domainId || !formData.domainId.trim()) {
+      newErrors.domainId = "Please select a domain";
+    } else {
+      // Check if the selected domain exists and has a webhook URL
+      const selectedDomain = domains.find((d) => d.id === formData.domainId);
+      if (!selectedDomain) {
+        newErrors.domainId = "Selected domain not found";
+      } else if (!selectedDomain.webhookUrl) {
+        newErrors.domainId = "Selected domain has no webhook URL configured";
+      }
+    }
+
+    if (!formData.subject.trim()) {
+      newErrors.subject = "Subject is required";
+    }
+
+    if (!formData.template.trim()) {
+      newErrors.template = "Email template is required";
+    }
+
+    setErrors(newErrors);
+
+    // Return true if no errors
+    return !Object.values(newErrors).some((error) => error !== "");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if there are any connected domains available
+    if (domainOptions.length === 0) {
+      toast.error("No connected domains available. Please add a domain first.");
+      return;
+    }
+
+    // Validate form before proceeding
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields correctly");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -349,132 +414,125 @@ export default function EditCampaignModal({
     }
   };
 
+  // Convert domains to dropdown options
+  const domainOptions: DropdownOption[] = domains
+    .filter((d) => d.status === "connected")
+    .map((domain) => ({
+      value: domain.id,
+      label: `${domain.name} (${domain.type})`,
+    }));
+
+  // Get webhook URL for selected domain
+  const selectedDomain = domains.find((d) => d.id === formData.domainId);
+  const webhookUrl = selectedDomain?.webhookUrl || "N/A";
+
   if (!isOpen) return null;
 
   return (
     <>
-      <div className="fixed inset-0 bg-opacity-20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Edit Campaign</h2>
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-opacity-50 backdrop-blur-md"
+          onClick={onClose}
+        ></div>
+        <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Edit Campaign</h2>
+              <p className="mt-1 text-sm text-gray-300">
+                Update campaign details and settings
+              </p>
+            </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="p-6 space-y-6 overflow-y-auto flex-1"
+          >
             {/* Campaign Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Campaign Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                required
-              />
-            </div>
+            <Input
+              label="Campaign Name"
+              value={formData.name}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                setErrors({ ...errors, name: "" });
+              }}
+              placeholder="Campaign name"
+              required
+              inputSize="lg"
+              error={errors.name}
+            />
 
             {/* Domain Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sending Domain *
-              </label>
-              <select
+              <Dropdown
+                label="Sending Domain"
+                options={domainOptions}
                 value={formData.domainId}
-                onChange={(e) =>
-                  setFormData({ ...formData, domainId: e.target.value })
+                onChange={(value) => {
+                  setFormData({ ...formData, domainId: value });
+                  setErrors({ ...errors, domainId: "" });
+                }}
+                placeholder={
+                  domainOptions.length === 0
+                    ? "No connected domains available"
+                    : "Select a domain"
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 required
-              >
-                <option value="">Select a domain</option>
-                {domains
-                  .filter((d) => d.status === "connected")
-                  .map((domain) => (
-                    <option key={domain.id} value={domain.id}>
-                      {domain.name} ({domain.type})
-                    </option>
-                  ))}
-              </select>
+                error={errors.domainId}
+              />
+              {domainOptions.length === 0 && (
+                <p className="mt-2 text-sm text-amber-600">
+                  Please add and connect a domain first from the Domains page
+                </p>
+              )}
             </div>
 
-            {/* Email Subject */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Subject *
-              </label>
-              <input
-                type="text"
-                value={formData.subject}
-                onChange={(e) =>
-                  setFormData({ ...formData, subject: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                required
+            {/* Webhook URL Display - only show when domain is selected */}
+            {formData.domainId && (
+              <Input
+                label="Webhook URL"
+                value={webhookUrl}
+                disabled
+                helperText="Webhook URL for the selected domain (auto-updates when domain changes)"
+                inputSize="lg"
               />
-            </div>
+            )}
+
+            {/* Email Subject */}
+            <Input
+              label="Email Subject"
+              value={formData.subject}
+              onChange={(e) => {
+                setFormData({ ...formData, subject: e.target.value });
+                setErrors({ ...errors, subject: "" });
+              }}
+              placeholder="Email subject"
+              required
+              error={errors.subject}
+            />
 
             {/* Email Template */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Template *
-              </label>
-              <textarea
+              <TemplateEditor
+                label="Email Template *"
                 value={formData.template}
-                onChange={(e) =>
-                  setFormData({ ...formData, template: e.target.value })
-                }
-                rows={8}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm text-gray-900"
+                onChange={(value) => {
+                  setFormData({ ...formData, template: value });
+                  setErrors({ ...errors, template: "" });
+                }}
+                error={errors.template}
+                csvColumns={csvColumns}
+                helperText="Supports Markdown (bold, underline, lists, links) and CSV placeholders."
                 required
               />
-              <div className="mt-2 space-y-2">
-                {csvColumns.length > 0 ? (
-                  <div>
-                    <p className="text-xs font-medium text-gray-700 mb-2">
-                      Available Placeholders (from CSV):
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {csvColumns.map((col) => (
-                        <button
-                          key={col}
-                          type="button"
-                          onClick={() => {
-                            const placeholder = `{{${col.toLowerCase()}}}`;
-                            setFormData({
-                              ...formData,
-                              template: formData.template + placeholder,
-                            });
-                          }}
-                          className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-mono cursor-pointer"
-                          title={`Click to insert ${col} placeholder`}
-                        >
-                          {"{{"}
-                          {col.toLowerCase()}
-                          {"}}"}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Click placeholders above to insert them into the template
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Upload a CSV file to see available placeholders. Use format:{" "}
-                    {"{{columnname}}"}
-                  </p>
-                )}
-              </div>
               {/* Body Image Upload */}
-              <div className="mt-3">
+              <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Body Image (Optional)
                 </label>
@@ -514,11 +572,11 @@ export default function EditCampaignModal({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#beb7c9] transition-colors">
                     <div className="space-y-1 text-center">
                       <ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
                       <div className="flex text-sm text-gray-600">
-                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#05112b] hover:text-[#05112b]/80">
                           <span>Upload image</span>
                           <input
                             type="file"
@@ -597,15 +655,15 @@ export default function EditCampaignModal({
                     </button>
                   </div>
                   {csvColumns.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs font-medium text-blue-900 mb-2">
+                    <div className="bg-gray-100 border border-gray-300 rounded-lg p-3">
+                      <p className="text-xs font-medium text-gray-900 mb-2">
                         Available CSV Columns:
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {csvColumns.map((col) => (
                           <span
                             key={col}
-                            className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-mono"
+                            className="px-2 py-1 bg-gray-200 text-[#05112b] rounded text-xs font-mono"
                           >
                             {col}
                           </span>
@@ -615,11 +673,11 @@ export default function EditCampaignModal({
                   )}
                 </div>
               ) : (
-                <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#beb7c9] transition-colors">
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-8 w-8 text-gray-400" />
                     <div className="flex text-sm text-gray-600">
-                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#05112b] hover:text-[#05112b]/80">
                         <span>Upload a file</span>
                         <input
                           type="file"
@@ -637,32 +695,22 @@ export default function EditCampaignModal({
 
             {/* Schedule */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                />
-              </div>
+              <DatePicker
+                label="Start Date"
+                value={formData.startDate}
+                onChange={(value) =>
+                  setFormData({ ...formData, startDate: value })
+                }
+                helperText="When to start the campaign"
+              />
+              <TimePicker
+                label="Start Time"
+                value={formData.startTime}
+                onChange={(value) =>
+                  setFormData({ ...formData, startTime: value })
+                }
+                helperText="Time to send emails"
+              />
             </div>
 
             {/* Leads Section */}
@@ -674,17 +722,17 @@ export default function EditCampaignModal({
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
                   <div className="overflow-x-auto max-h-96 overflow-y-auto">
                     <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg">
-                      <thead className="bg-gray-100 sticky top-0">
+                      <thead className="bg-gray-100 sticky top-0 z-10">
                         <tr>
                           {Object.keys(csvData[0] || {}).map((key) => (
                             <th
                               key={key}
-                              className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-100 min-w-[200px]"
                             >
                               {key}
                             </th>
                           ))}
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-100 sticky right-0">
                             Actions
                           </th>
                         </tr>
@@ -694,10 +742,7 @@ export default function EditCampaignModal({
                           <tr key={index} className="hover:bg-gray-50">
                             {Object.entries(lead).map(
                               ([key, value], valueIndex) => (
-                                <td
-                                  key={valueIndex}
-                                  className="px-4 py-2 whitespace-nowrap"
-                                >
+                                <td key={valueIndex} className="px-3 py-3">
                                   <input
                                     type="text"
                                     value={String(value || "")}
@@ -709,12 +754,13 @@ export default function EditCampaignModal({
                                       };
                                       setCsvData(updatedData);
                                     }}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                    className="w-full min-w-[180px] px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9] text-gray-900 placeholder-gray-400 outline-none transition-all"
+                                    placeholder={`Enter ${key.toLowerCase()}`}
                                   />
                                 </td>
                               )
                             )}
-                            <td className="px-4 py-2 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap sticky right-0 bg-white">
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
@@ -726,7 +772,7 @@ export default function EditCampaignModal({
                                       bodyImage
                                     )
                                   }
-                                  className="text-blue-600 hover:text-blue-800"
+                                  className="p-2 text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-100 rounded-lg transition-colors"
                                   title="Preview email for this lead"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -734,7 +780,7 @@ export default function EditCampaignModal({
                                 <button
                                   type="button"
                                   onClick={() => onRemoveLead(index)}
-                                  className="text-red-600 hover:text-red-800"
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                                   title="Remove this lead"
                                 >
                                   <X className="w-4 h-4" />
@@ -769,7 +815,7 @@ export default function EditCampaignModal({
                             toast.error("Please upload CSV first");
                           }
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-sm text-[#05112b] hover:text-[#05112b]/80 font-medium"
                       >
                         + Add New Lead
                       </button>
@@ -791,18 +837,19 @@ export default function EditCampaignModal({
             )}
 
             {/* Submit Buttons */}
-            <div className="flex items-center justify-end space-x-4 pt-4 border-t">
+            <div className="grid grid-cols-2 gap-4 pt-6 border-t-2 border-gray-200">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-3 bg-[#05112b] text-white font-bold rounded-xl hover:bg-[#05112b]/90 transition-all disabled:opacity-50 shadow-lg"
               >
                 {loading ? "Updating..." : "Update Campaign"}
               </button>

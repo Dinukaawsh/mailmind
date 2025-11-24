@@ -11,20 +11,27 @@ import {
   XCircle,
   AlertCircle,
   Edit,
+  Server,
+  TrendingUp,
+  Clock,
+  Activity,
 } from "lucide-react";
 import { domainApi } from "../utils/api";
 import { Domain } from "../types";
 import toast from "react-hot-toast";
 import EditDomainModal from "../components/EditDomainModal";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import CreateDomainModal from "../components/CreateDomainModal";
+import LoadingSpinner from "../components/Loading/LoadingSpinner";
 
 export default function DomainsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddDomain, setShowAddDomain] = useState(false);
-  const [newDomain, setNewDomain] = useState("");
-  const [connectingGmail, setConnectingGmail] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [domainToDelete, setDomainToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadDomains();
@@ -46,52 +53,24 @@ export default function DomainsPage() {
     }
   };
 
-  const handleConnectGmail = async () => {
-    try {
-      setConnectingGmail(true);
-      // In real app, this would redirect to OAuth flow
-      const response = await domainApi.connectGmail();
-      // Open OAuth window
-      window.open(response.authUrl, "_blank", "width=600,height=700");
-      toast.success("Opening Gmail authentication...");
-    } catch (error) {
-      toast.error("Failed to connect Gmail account");
-      console.error(error);
-    } finally {
-      setConnectingGmail(false);
-    }
-  };
-
-  const handleAddCustomDomain = async () => {
-    if (!newDomain.trim()) {
-      toast.error("Please enter a domain name");
-      return;
-    }
-
-    try {
-      await domainApi.addCustom(newDomain);
-      toast.success("Domain added successfully");
-      setNewDomain("");
-      setShowAddDomain(false);
-      loadDomains();
-    } catch (error) {
-      toast.error("Failed to add domain");
-      console.error(error);
-    }
-  };
-
   const handleDisconnect = async (id: string) => {
-    if (!confirm("Are you sure you want to disconnect this domain?")) {
-      return;
-    }
+    setDomainToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDisconnect = async () => {
+    if (!domainToDelete) return;
 
     try {
-      await domainApi.disconnect(id);
+      await domainApi.disconnect(domainToDelete);
       toast.success("Domain disconnected");
       loadDomains();
     } catch (error) {
       toast.error("Failed to disconnect domain");
       console.error(error);
+    } finally {
+      setShowDeleteModal(false);
+      setDomainToDelete(null);
     }
   };
 
@@ -162,136 +141,233 @@ export default function DomainsPage() {
     return `${diffDays} days ago`;
   };
 
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Domains</h1>
-          <p className="mt-2 text-gray-600">
-            Manage your sending domains and Gmail integrations
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setShowAddDomain(!showAddDomain)}
-            className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Domain
-          </button>
-          <button
-            onClick={handleConnectGmail}
-            disabled={connectingGmail}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            <Mail className="w-5 h-5 mr-2" />
-            {connectingGmail ? "Connecting..." : "Connect Gmail"}
-          </button>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gray-100 rounded-xl border border-gray-300">
+                <Server className="w-8 h-8 text-[#05112b]" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-[#05112b]">Domains</h1>
+                <p className="mt-1 text-gray-600 flex items-center">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Manage your sending domains and Gmail integrations
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center px-5 py-2.5 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add Domain
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Add Custom Domain Form */}
-      {showAddDomain && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Add Custom Domain
-          </h2>
-          <div className="flex space-x-3">
-            <input
-              type="text"
-              value={newDomain}
-              onChange={(e) => setNewDomain(e.target.value)}
-              placeholder="example.com"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            />
-            <button
-              onClick={handleAddCustomDomain}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setShowAddDomain(false);
-                setNewDomain("");
-              }}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Total Domains
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {domains.length}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                Connected domains
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gray-100 rounded-xl border border-gray-300">
+              <Server className="w-8 h-8 text-[#05112b]" />
+            </div>
           </div>
         </div>
-      )}
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-green-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Active Domains
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {domains.filter((d) => d.status === "connected").length}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                Ready to send
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-purple-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Gmail Accounts
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {domains.filter((d) => d.type === "gmail").length}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <Mail className="w-3 h-3 mr-1 text-purple-600" />
+                Google integration
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+              <Mail className="w-8 h-8 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-orange-300 transform hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                Daily Capacity
+              </p>
+              <p className="mt-3 text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {domains.reduce((sum, d) => sum + d.emailsSentPerDay, 0)}
+              </p>
+              <p className="mt-2 text-sm text-gray-500 flex items-center">
+                <TrendingUp className="w-3 h-3 mr-1 text-orange-600" />
+                Emails per day
+              </p>
+            </div>
+            <div className="ml-4 p-3 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl">
+              <TrendingUp className="w-8 h-8 text-orange-600" />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Domains List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">
-            Loading domains...
+          <div className="p-12 text-center">
+            <LoadingSpinner />
           </div>
         ) : domains.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <Globe className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <p>No domains connected yet.</p>
-            <p className="text-sm mt-2">
-              Connect a Gmail account or add a custom domain to get started.
+          <div className="p-12 text-center">
+            <Globe className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 text-lg font-medium">
+              No domains connected yet
             </p>
+            <p className="text-gray-400 text-sm mt-2">
+              Connect a Gmail account or add a custom domain to get started
+            </p>
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center px-4 py-2 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Domain
+              </button>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
             {domains.map((domain) => (
               <div
                 key={domain.id}
-                className="p-6 hover:bg-gray-50 transition-colors"
+                className="p-6 hover:bg-gray-50 transition-all duration-200"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-4 flex-1">
                     <div className="flex-shrink-0">
-                      {domain.type === "gmail" ? (
-                        <Mail className="w-8 h-8 text-red-500" />
-                      ) : (
-                        <Globe className="w-8 h-8 text-blue-500" />
-                      )}
+                      <div
+                        className={`p-3 rounded-xl ${
+                          domain.type === "gmail"
+                            ? "bg-gradient-to-br from-red-50 to-pink-50"
+                            : "bg-gradient-to-br from-blue-50 to-indigo-50"
+                        }`}
+                      >
+                        {domain.type === "gmail" ? (
+                          <Mail className="w-8 h-8 text-red-500" />
+                        ) : (
+                          <Globe className="w-8 h-8 text-blue-500" />
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
                         <h3 className="text-lg font-semibold text-gray-900">
                           {domain.name}
                         </h3>
-                        {getStatusIcon(domain.status)}
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(domain.status)}
+                          <span
+                            className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              domain.status === "connected"
+                                ? "bg-green-100 text-green-800 border border-green-200"
+                                : domain.status === "error"
+                                ? "bg-red-100 text-red-800 border border-red-200"
+                                : "bg-gray-100 text-gray-800 border border-gray-200"
+                            }`}
+                          >
+                            {getStatusText(domain.status)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600">
-                        <span className="capitalize">{domain.type}</span>
-                        <span>•</span>
-                        <span>{getStatusText(domain.status)}</span>
-                        <span>•</span>
-                        <span>{domain.emailsSentPerDay} emails/day</span>
-                        <span>•</span>
-                        <span>
-                          Last sync: {formatLastSync(domain.lastSyncTime)}
+                      <div className="mt-2 flex items-center space-x-4 text-sm text-gray-600">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-medium capitalize">
+                          {domain.type}
+                        </span>
+                        <span className="flex items-center">
+                          <TrendingUp className="w-4 h-4 mr-1 text-gray-400" />
+                          {domain.emailsSentPerDay} emails/day
+                        </span>
+                        <span className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                          {formatDateTime(domain.createdAt)}
+                        </span>
+                        <span className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                          {formatLastSync(domain.lastSyncTime)}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 ml-4">
                     <button
                       onClick={() => handleEdit(domain)}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit"
+                      className="p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
+                      title="Edit domain"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleSync(domain.id)}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Sync"
+                      className="p-2.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all border border-transparent hover:border-green-200"
+                      title="Sync domain"
                     >
                       <RefreshCw className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleDisconnect(domain.id)}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Disconnect"
+                      className="p-2.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-200"
+                      title="Disconnect domain"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -304,19 +380,60 @@ export default function DomainsPage() {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">
-          Domain Management Tips
-        </h3>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Connect multiple Gmail accounts to balance sending load</li>
-          <li>
-            • Custom domains require DNS configuration for proper email delivery
-          </li>
-          <li>• Domains are automatically synced every 5 minutes</li>
-          <li>• Monitor email limits per domain to avoid rate limiting</li>
-        </ul>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <AlertCircle className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+          <div className="ml-4">
+            <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center">
+              Domain Management Tips
+              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">
+                Important
+              </span>
+            </h3>
+            <ul className="text-sm text-blue-800 space-y-2">
+              <li className="flex items-start">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
+                <span>
+                  Connect multiple Gmail accounts to balance sending load and
+                  avoid rate limits
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
+                <span>
+                  Custom domains require DNS configuration (SPF, DKIM, DMARC)
+                  for proper email delivery
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
+                <span>
+                  Domains are automatically synced every 5 minutes to ensure
+                  up-to-date status
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 mt-1.5"></span>
+                <span>
+                  Monitor email limits per domain to avoid rate limiting and
+                  maintain deliverability
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
+
+      {/* Create Domain Modal */}
+      <CreateDomainModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={loadDomains}
+      />
 
       {/* Edit Domain Modal */}
       <EditDomainModal
@@ -328,6 +445,34 @@ export default function DomainsPage() {
         domain={selectedDomain}
         onUpdate={handleUpdateDomain}
       />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDomainToDelete(null);
+        }}
+        onConfirm={confirmDisconnect}
+        title="Disconnect Domain"
+        message="Are you sure you want to disconnect this domain? This will remove the domain from your account and you won't be able to send emails from it until you reconnect it."
+      />
+
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

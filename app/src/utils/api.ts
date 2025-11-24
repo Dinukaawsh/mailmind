@@ -149,26 +149,56 @@ export const campaignApi = {
       isComplete: boolean;
       completionMessage?: string | null;
     }>(`/api/campaigns/${id}/logs/history`),
+  getReplies: (
+    id: string,
+    params?: { page?: number; pageSize?: number; status?: string }
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", params.page.toString());
+    if (params?.pageSize) query.set("pageSize", params.pageSize.toString());
+    if (params?.status) query.set("status", params.status);
+
+    const queryString = query.toString();
+    const endpoint = `/api/campaigns/${id}/replies${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    return fetchWithError<{
+      replies: import("../types").CampaignReply[];
+      total: number;
+      unreadCount: number;
+      page: number;
+      pageSize: number;
+    }>(endpoint);
+  },
+  markReplyRead: (campaignId: string, replyId: string) =>
+    fetchWithError<{ success: boolean }>(
+      `/api/campaigns/${campaignId}/replies/${replyId}/read`,
+      { method: "POST" }
+    ),
 };
 
 // Domain API
 // Fetches from MongoDB database (mailmind, domains collection)
+// NOTE: Domain creation is now handled by the n8n webhook, not through the API
 export const domainApi = {
   getAll: () => fetchWithError<import("../types").Domain[]>("/api/domains"),
+  // @deprecated - Domain creation is now handled by n8n webhook
   connectGmail: async () => {
-    // Mock OAuth URL - will be implemented later
+    // This function is deprecated - use the CreateDomainModal which calls the webhook directly
     return {
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     };
   },
+  // @deprecated - Domain creation is now handled by n8n webhook
   addCustom: async (domain: string) => {
+    // This function is deprecated - domains are now created via webhook
     return fetchWithError<import("../types").Domain>("/api/domains", {
       method: "POST",
       body: JSON.stringify({ name: domain, type: "custom" }),
     });
   },
   disconnect: async (id: string) => {
-    // Will be implemented later
     return fetchWithError<void>(`/api/domains/${id}`, { method: "DELETE" });
   },
   update: async (id: string, data: Partial<import("../types").Domain>) => {

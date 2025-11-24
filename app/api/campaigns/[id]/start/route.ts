@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
+import { ensureStartDateTime } from "../../utils/schedule";
 
 /**
  * Start Campaign Route
@@ -47,6 +48,7 @@ export async function POST(
     const mongoClient = await getMongoClient();
     const db = mongoClient.db(process.env.MONGODB_DATABASE || "mailmind");
     const collection = db.collection("campaigns");
+    const domainsCollection = db.collection("domains");
 
     // Fetch campaign from database
     const campaign = await collection.findOne({ _id: new ObjectId(id) });
@@ -58,11 +60,33 @@ export async function POST(
       );
     }
 
-    // Get webhook URL from environment
-    const webhookUrl = process.env.NEXT_PUBLIC_API_URL;
+    // Get the domain associated with this campaign
+    if (!campaign.domainId) {
+      return NextResponse.json(
+        { error: "Campaign has no domain assigned" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch domain to get its webhook URL
+    const domain = await domainsCollection.findOne({
+      _id: new ObjectId(campaign.domainId),
+    });
+
+    if (!domain) {
+      return NextResponse.json(
+        { error: "Domain not found for this campaign" },
+        { status: 404 }
+      );
+    }
+
+    // Get webhook URL from the domain document
+    const webhookUrl = domain.webhookUrl;
     if (!webhookUrl) {
       return NextResponse.json(
-        { error: "Webhook URL not configured" },
+        {
+          error: `Domain "${domain.name}" does not have a webhook URL configured. Please ensure the domain was created via the webhook.`,
+        },
         { status: 500 }
       );
     }
@@ -121,6 +145,30 @@ export async function POST(
     // Normalize CSV data before sending to webhook
     const normalizedCsvData = normalizeEmailColumn(campaign.csvData || []);
 
+    const startDateTimeValue =
+      ensureStartDateTime({
+        startDateTime: campaign.startDateTime,
+        startDate: campaign.startDate,
+        startTime: campaign.startTime,
+      }) || "";
+
+    // Use domain name from the already fetched domain
+    const domainName = domain.name || campaign.domainName || "";
+
+    // Log campaign launch details
+    console.log(
+      `🚀 Launching campaign "${
+        campaign.name
+      }" (${campaign._id.toString()}) with domain "${domainName}" to webhook: ${webhookUrl}`
+    );
+
+    console.log("📦 Domain details:", {
+      id: domain._id.toString(),
+      name: domain.name,
+      type: domain.type,
+      webhookUrl: domain.webhookUrl,
+    });
+
     // Prepare ALL campaign data for webhook
     // Send complete campaign object with all fields
     const campaignData = {
@@ -128,13 +176,21 @@ export async function POST(
       id: campaign._id.toString(),
       name: campaign.name,
       domainId: campaign.domainId,
+      domainName,
+      // Include domain details for webhook processing
+      domain: {
+        id: domain._id.toString(),
+        name: domain.name,
+        type: domain.type,
+        status: domain.status,
+        emailsSentPerDay: domain.emailsSentPerDay || 0,
+      },
       template: campaign.template || "",
       subject: campaign.subject || "",
       bodyImage: campaign.bodyImage || "",
       followUpTemplate: campaign.followUpTemplate || "",
       followUpDelay: campaign.followUpDelay || 7,
-      startDate: campaign.startDate || "",
-      startTime: campaign.startTime || "",
+      startDateTime: startDateTimeValue,
       csvData: normalizedCsvData, // Use normalized CSV data
       sentCount: campaign.sentCount || 0,
       openRate: campaign.openRate || 0,
@@ -146,6 +202,10 @@ export async function POST(
       // Include logs endpoint URL so n8n can send logs back
       logsEndpoint: logsEndpointUrl,
     };
+
+    // Log complete payload being sent to webhook
+    console.log("📤 Sending payload to webhook:");
+    console.log(JSON.stringify(campaignData, null, 2));
 
     // Send to webhook with timeout
     const controller = new AbortController();
@@ -185,6 +245,13 @@ export async function POST(
         headers: Object.fromEntries(webhookResponse.headers.entries()),
         data: webhookResponseData,
       };
+
+      // Log webhook response
+      console.log("📥 Webhook response:", {
+        status: webhookResponse.status,
+        statusText: webhookResponse.statusText,
+        data: webhookResponseData,
+      });
 
       // Track when it was last sent for activity feed (regardless of webhook response)
       await collection.updateOne(

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
+import {
+  ensureStartDateTime,
+  getScheduleFieldsForResponse,
+} from "./utils/schedule";
 
 /**
  * Campaigns API Routes
@@ -42,28 +46,34 @@ export async function GET() {
     const data = await collection.find({}).sort({ createdAt: -1 }).toArray();
 
     // Transform to match frontend format
-    const formattedData = data.map((item) => ({
-      id: item._id.toString(),
-      name: item.name,
-      sentCount: item.sentCount || 0,
-      openRate: item.openRate || 0,
-      replyRate: item.replyRate || 0,
-      bounceRate: item.bounceRate || 0,
-      unsubscribeCount: item.unsubscribeCount || 0,
-      status: item.status || "paused",
-      createdAt: item.createdAt || new Date().toISOString(),
-      startDate: item.startDate,
-      startTime: item.startTime,
-      domainId: item.domainId,
-      template: item.template,
-      subject: item.subject,
-      bodyImage: item.bodyImage,
-      bodyImageS3Url: item.bodyImageS3Url || "",
-      csvFileS3Url: item.csvFileS3Url || "",
-      followUpTemplate: item.followUpTemplate,
-      followUpDelay: item.followUpDelay || 7,
-      csvData: item.csvData || [],
-    }));
+    const formattedData = data.map((item) => {
+      const scheduleFields = getScheduleFieldsForResponse(item as any);
+      return {
+        id: item._id.toString(),
+        name: item.name,
+        sentCount: item.sentCount || 0,
+        openRate: item.openRate || 0,
+        replyRate: item.replyRate || 0,
+        bounceRate: item.bounceRate || 0,
+        unsubscribeCount: item.unsubscribeCount || 0,
+        status: item.status || "paused",
+        createdAt: item.createdAt || new Date().toISOString(),
+        startDate: scheduleFields.startDate,
+        startTime: scheduleFields.startTime,
+        startDateTime: scheduleFields.startDateTime,
+        domainId: item.domainId,
+        template: item.template,
+        subject: item.subject,
+        bodyImage: item.bodyImage,
+        bodyImageS3Url: item.bodyImageS3Url || "",
+        csvFileS3Url: item.csvFileS3Url || "",
+        followUpTemplate: item.followUpTemplate,
+        followUpDelay: item.followUpDelay || 7,
+        csvData: item.csvData || [],
+        isActive: item.isActive !== undefined ? item.isActive : true, // Default to true for backward compatibility
+        processingStatus: item.processingStatus || "ready", // Default to ready for backward compatibility
+      };
+    });
 
     return NextResponse.json(formattedData);
   } catch (error: any) {
@@ -105,6 +115,7 @@ export async function POST(request: Request) {
       followUpDelay,
       startDate,
       startTime,
+      startDateTime,
       csvData,
     } = body;
 
@@ -121,7 +132,13 @@ export async function POST(request: Request) {
     const collection = db.collection("campaigns");
 
     // Create campaign document
-    const campaignDoc = {
+    const startDateTimeValue = ensureStartDateTime({
+      startDateTime,
+      startDate,
+      startTime,
+    });
+
+    const campaignDoc: Record<string, any> = {
       name,
       domainId,
       template,
@@ -131,8 +148,6 @@ export async function POST(request: Request) {
       csvFileS3Url: csvFileS3Url || "",
       followUpTemplate: followUpTemplate || "",
       followUpDelay: parseInt(followUpDelay),
-      startDate: startDate || "",
-      startTime: startTime || "",
       csvData: csvData || [],
       sentCount: 0,
       openRate: 0,
@@ -141,17 +156,151 @@ export async function POST(request: Request) {
       unsubscribeCount: 0,
       status: "paused", // New campaigns start as paused
       createdAt: new Date().toISOString(),
+      isActive: true, // New campaigns are active by default
     };
 
-    const result = await collection.insertOne(campaignDoc);
+    if (startDateTimeValue) {
+      campaignDoc.startDateTime = startDateTimeValue;
+    }
 
-    return NextResponse.json(
-      {
-        id: result.insertedId.toString(),
-        ...campaignDoc,
-      },
-      { status: 201 }
-    );
+    const result = await collection.insertOne(campaignDoc);
+    const campaignId = result.insertedId.toString();
+
+    // Check if webhook processing is enabled
+    const enableWebhookProcessing =
+      process.env.ENABLE_WEBHOOK_PROCESSING === "true";
+
+    if (enableWebhookProcessing) {
+      // Send campaign ID to webhook for processing
+      const webhookUrl =
+        process.env.CAMPAIGN_PROCESSING_WEBHOOK_URL ||
+        "https://n8n.isra-land.com/webhook/65395249-d5f5-42ea-a45b-87382122cc1a";
+
+      console.log(
+        `🚀 Sending campaign ${campaignId} to webhook for processing...`
+      );
+
+      try {
+        // Send to webhook and wait for response
+        const webhookResponse = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            campaignId: campaignId,
+          }),
+        });
+
+        if (webhookResponse.ok) {
+          const webhookData = await webhookResponse.json();
+
+          // Check if webhook returned success
+          if (webhookData.status === "success") {
+            // Mark campaign as ready
+            await collection.updateOne(
+              { _id: result.insertedId },
+              { $set: { processingStatus: "ready" } }
+            );
+
+            console.log(
+              `✅ Campaign ${campaignId} processed successfully by webhook`
+            );
+
+            return NextResponse.json(
+              {
+                id: campaignId,
+                ...campaignDoc,
+                processingStatus: "ready",
+              },
+              { status: 201 }
+            );
+          } else {
+            // Webhook returned error status
+            await collection.updateOne(
+              { _id: result.insertedId },
+              { $set: { processingStatus: "error" } }
+            );
+
+            console.error(
+              `❌ Webhook returned error for campaign ${campaignId}:`,
+              webhookData
+            );
+
+            return NextResponse.json(
+              {
+                id: campaignId,
+                ...campaignDoc,
+                processingStatus: "error",
+                error: webhookData.message || "Webhook processing failed",
+              },
+              { status: 201 }
+            );
+          }
+        } else {
+          // Webhook request failed
+          await collection.updateOne(
+            { _id: result.insertedId },
+            { $set: { processingStatus: "error" } }
+          );
+
+          console.error(
+            `❌ Webhook request failed for campaign ${campaignId}: ${webhookResponse.statusText}`
+          );
+
+          return NextResponse.json(
+            {
+              id: campaignId,
+              ...campaignDoc,
+              processingStatus: "error",
+              error: `Webhook request failed: ${webhookResponse.statusText}`,
+            },
+            { status: 201 }
+          );
+        }
+      } catch (error: any) {
+        // Network error or webhook unreachable
+        console.error(
+          `❌ Error calling webhook for campaign ${campaignId}:`,
+          error
+        );
+
+        // Mark as error in database
+        await collection.updateOne(
+          { _id: result.insertedId },
+          { $set: { processingStatus: "error" } }
+        );
+
+        return NextResponse.json(
+          {
+            id: campaignId,
+            ...campaignDoc,
+            processingStatus: "error",
+            error: `Webhook error: ${error.message}`,
+          },
+          { status: 201 }
+        );
+      }
+    } else {
+      // Webhook processing disabled - mark as ready immediately
+      await collection.updateOne(
+        { _id: result.insertedId },
+        { $set: { processingStatus: "ready" } }
+      );
+
+      console.log(
+        `✅ Campaign ${campaignId} created and marked as ready (webhook processing disabled)`
+      );
+
+      return NextResponse.json(
+        {
+          id: campaignId,
+          ...campaignDoc,
+          processingStatus: "ready",
+        },
+        { status: 201 }
+      );
+    }
   } catch (error: any) {
     console.error("MongoDB API Error:", error);
     return NextResponse.json(

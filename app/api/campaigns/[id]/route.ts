@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
+import {
+  ensureStartDateTime,
+  getScheduleFieldsForResponse,
+} from "../utils/schedule";
 
 /**
  * Single Campaign API Routes
@@ -60,6 +64,7 @@ export async function GET(
     }
 
     // Transform to match frontend format
+    const scheduleFields = getScheduleFieldsForResponse(campaign as any);
     const formattedCampaign = {
       id: campaign._id.toString(),
       name: campaign.name,
@@ -70,8 +75,9 @@ export async function GET(
       unsubscribeCount: campaign.unsubscribeCount || 0,
       status: campaign.status || "paused",
       createdAt: campaign.createdAt || new Date().toISOString(),
-      startDate: campaign.startDate,
-      startTime: campaign.startTime,
+      startDate: scheduleFields.startDate,
+      startTime: scheduleFields.startTime,
+      startDateTime: scheduleFields.startDateTime,
       domainId: campaign.domainId,
       template: campaign.template,
       subject: campaign.subject,
@@ -81,6 +87,7 @@ export async function GET(
       followUpTemplate: campaign.followUpTemplate,
       followUpDelay: campaign.followUpDelay || 7,
       csvData: campaign.csvData || [],
+      isActive: campaign.isActive !== undefined ? campaign.isActive : true, // Default to true for backward compatibility
     };
 
     return NextResponse.json(formattedCampaign);
@@ -133,6 +140,7 @@ export async function PUT(
       followUpDelay,
       startDate,
       startTime,
+      startDateTime,
       csvData,
     } = body;
 
@@ -162,10 +170,18 @@ export async function PUT(
     if (followUpTemplate !== undefined)
       updateData.followUpTemplate = followUpTemplate;
     if (followUpDelay !== undefined) updateData.followUpDelay = followUpDelay;
-    if (startDate !== undefined) updateData.startDate = startDate;
-    if (startTime !== undefined) updateData.startTime = startTime;
+    if (
+      startDate !== undefined ||
+      startTime !== undefined ||
+      startDateTime !== undefined
+    ) {
+      const normalizedStartDateTime =
+        ensureStartDateTime({ startDateTime, startDate, startTime }) || "";
+      updateData.startDateTime = normalizedStartDateTime;
+    }
     if (csvData !== undefined) updateData.csvData = csvData; // Updated lead data from edits
     if (body.status !== undefined) updateData.status = body.status;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive; // Soft delete flag
 
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },
