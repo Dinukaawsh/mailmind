@@ -15,6 +15,7 @@ import {
   Settings,
   User,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -149,19 +150,32 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </button>
               <div className="hidden lg:block">
                 <h2 className="text-xl font-bold text-[#05112b]">
-                  {navigation.find(
-                    (item) =>
-                      pathname === item.href ||
-                      (item.href !== "/" && pathname?.startsWith(item.href))
-                  )?.name || "Dashboard"}
+                  {pathname === "/help"
+                    ? "Help Center"
+                    : navigation.find(
+                        (item) =>
+                          pathname === item.href ||
+                          (item.href !== "/" && pathname?.startsWith(item.href))
+                      )?.name || "Dashboard"}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Manage your email campaigns efficiently
+                  {pathname === "/help"
+                    ? "Learn how to use the system"
+                    : "Manage your email campaigns efficiently"}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Help Icon */}
+              <Link
+                href="/help"
+                className="p-2 text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-100 rounded-lg transition-all"
+                title="Help Center"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Link>
+
               {/* Notifications */}
               {/* <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
                 <Bell className="w-5 h-5" />
