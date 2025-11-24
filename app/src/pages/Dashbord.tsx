@@ -61,6 +61,9 @@ export default function Dashboard() {
     { name: string; value: number }[]
   >([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [campaignStats, setCampaignStats] = useState<
+    Record<string, { sentCount: number; repliesCount: number }>
+  >({});
 
   useEffect(() => {
     loadData();
@@ -82,15 +85,66 @@ export default function Dashboard() {
       const activeCampaigns = campaignsData.filter((c) => c.isActive !== false);
       setCampaigns(activeCampaigns);
 
+      // Fetch stats (sent and replies) for each campaign
+      const stats: Record<string, { sentCount: number; repliesCount: number }> =
+        {};
+      await Promise.all(
+        activeCampaigns.map(async (campaign) => {
+          try {
+            // Fetch logs to count sent emails
+            const logsResponse = await fetch(
+              `/api/campaigns/${campaign.id}/logs/history`
+            );
+            let sentCount = 0;
+            if (logsResponse.ok) {
+              const logsData = await logsResponse.json();
+              const logs = logsData.logs || [];
+              sentCount = logs.filter((log: string) => {
+                if (log.includes("✅") || log.includes("📧")) return false;
+                try {
+                  const parsed = JSON.parse(log);
+                  return parsed.Email && parsed.Status;
+                } catch {
+                  return false;
+                }
+              }).length;
+            }
+
+            // Fetch replies
+            const repliesResponse = await fetch(
+              `/api/campaigns/${campaign.id}/replies`
+            );
+            let repliesCount = 0;
+            if (repliesResponse.ok) {
+              const repliesData = await repliesResponse.json();
+              repliesCount = (repliesData.replies || []).length;
+            }
+
+            stats[campaign.id] = {
+              sentCount: sentCount > 0 ? sentCount : campaign.sentCount || 0,
+              repliesCount,
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching stats for campaign ${campaign.id}:`,
+              error
+            );
+            stats[campaign.id] = {
+              sentCount: campaign.sentCount || 0,
+              repliesCount: 0,
+            };
+          }
+        })
+      );
+      setCampaignStats(stats);
+
       // Generate performance data from actual campaigns
       // Group campaigns by date and aggregate metrics
       const performanceMap = new Map<
         string,
         {
           sent: number;
-          opens: number;
           replies: number;
-          bounces: number;
         }
       >();
 
@@ -104,13 +158,11 @@ export default function Dashboard() {
         });
         performanceMap.set(dateKey, {
           sent: 0,
-          opens: 0,
           replies: 0,
-          bounces: 0,
         });
       }
 
-      // Aggregate campaign data (only active campaigns)
+      // Aggregate campaign data based on actual stats from logs and replies
       activeCampaigns.forEach((campaign) => {
         const campaignDate = new Date(campaign.createdAt);
         const dateKey = campaignDate.toLocaleDateString("en-US", {
@@ -120,21 +172,10 @@ export default function Dashboard() {
 
         const existing = performanceMap.get(dateKey);
         if (existing) {
-          existing.sent += campaign.sentCount || 0;
-          // Calculate actual opens/replies from rates
-          const opens = Math.round(
-            ((campaign.sentCount || 0) * (campaign.openRate || 0)) / 100
-          );
-          const replies = Math.round(
-            ((campaign.sentCount || 0) * (campaign.replyRate || 0)) / 100
-          );
-          const bounces = Math.round(
-            ((campaign.sentCount || 0) * (campaign.bounceRate || 0)) / 100
-          );
-
-          existing.opens += opens;
-          existing.replies += replies;
-          existing.bounces += bounces;
+          // Use actual sent count from stats (logs)
+          existing.sent += stats[campaign.id]?.sentCount || 0;
+          // Use actual replies count from stats (replies collection)
+          existing.replies += stats[campaign.id]?.repliesCount || 0;
         }
       });
 
@@ -357,16 +398,16 @@ export default function Dashboard() {
                       <Mail className="w-3 h-3 text-blue-500" />
                     </div>
                     <p className="text-lg font-bold text-gray-900 mt-1">
-                      {campaign.sentCount || 0}
+                      {campaignStats[campaign.id]?.sentCount || 0}
                     </p>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-gray-100">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Open Rate</span>
-                      <MailOpen className="w-3 h-3 text-green-500" />
+                      <span className="text-xs text-gray-500">Replies</span>
+                      <MessageSquare className="w-3 h-3 text-orange-500" />
                     </div>
                     <p className="text-lg font-bold text-gray-900 mt-1">
-                      {campaign.openRate?.toFixed(1) || 0}%
+                      {campaignStats[campaign.id]?.repliesCount || 0}
                     </p>
                   </div>
                 </div>
@@ -449,19 +490,15 @@ export default function Dashboard() {
                   campaigns.
                 </p>
                 <p className="text-gray-300">
-                  • <strong>Sent</strong>: Total emails sent
-                  <br />• <strong>Opens/Replies</strong>: Calculated from
-                  campaign rates
-                  {performance.every(
-                    (p) => p.opens === 0 && p.replies === 0
-                  ) && (
+                  • <strong>Sent</strong>: Actual emails sent from webhook logs
+                  <br />• <strong>Replies</strong>: Actual replies from database
+                  {performance.every((p) => p.replies === 0) && (
                     <>
                       <br />
                       <br />
                       <span className="text-yellow-300">
-                        ⚠️ Email tracking not integrated. Open/reply data will
-                        show 0 until you connect an email service provider with
-                        tracking.
+                        ⚠️ No replies detected yet. Replies will appear here
+                        once your webhook stores them in the database.
                       </span>
                     </>
                   )}
@@ -490,14 +527,6 @@ export default function Dashboard() {
                 strokeWidth={2}
                 name="Sent"
                 dot={{ fill: "#3b82f6", r: 4 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="opens"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="Opens"
-                dot={{ fill: "#10b981", r: 4 }}
               />
               <Line
                 type="monotone"

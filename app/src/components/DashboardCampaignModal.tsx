@@ -19,7 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Campaign } from "../types";
+import { Campaign, CampaignReply } from "../types";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { getScheduleDisplay } from "../utils/schedule";
@@ -36,6 +36,8 @@ export default function DashboardCampaignModal({
   const [imageUrl, setImageUrl] = useState<string>("");
   const [imageError, setImageError] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [replies, setReplies] = useState<CampaignReply[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
   const leadsPerPage = 10;
 
   const formattedTemplate = useMemo(() => {
@@ -48,6 +50,8 @@ export default function DashboardCampaignModal({
     if (!campaign) {
       setImageUrl("");
       setImageError(false);
+      setReplies([]);
+      setLogs([]);
       return;
     }
 
@@ -96,7 +100,39 @@ export default function DashboardCampaignModal({
       }
     };
 
+    // Fetch replies for the campaign
+    const fetchReplies = async () => {
+      try {
+        const response = await fetch(`/api/campaigns/${campaign.id}/replies`);
+        if (response.ok) {
+          const data = await response.json();
+          setReplies(data.replies || []);
+        }
+      } catch (error) {
+        console.error("Error fetching replies:", error);
+        setReplies([]);
+      }
+    };
+
+    // Fetch logs to count actual sent emails
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch(
+          `/api/campaigns/${campaign.id}/logs/history`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setLogs(data.logs || []);
+        }
+      } catch (error) {
+        console.error("Error fetching logs:", error);
+        setLogs([]);
+      }
+    };
+
     fetchPresignedUrl();
+    fetchReplies();
+    fetchLogs();
     setImageError(false);
   }, [campaign]);
 
@@ -131,8 +167,26 @@ export default function DashboardCampaignModal({
   };
 
   const leadCount = campaign.csvData?.length || 0;
-  const contactedCount = campaign.sentCount || 0;
+
+  // Count actual sent emails from logs
+  const sentCount = logs.filter((log) => {
+    // Filter out completion messages and only count actual email logs
+    if (log.includes("✅") || log.includes("📧")) return false;
+    try {
+      const parsed = JSON.parse(log);
+      return parsed.Email && parsed.Status; // Valid email log
+    } catch {
+      return false;
+    }
+  }).length;
+
+  const contactedCount = sentCount > 0 ? sentCount : campaign.sentCount || 0;
   const remainingLeads = Math.max(0, leadCount - contactedCount);
+
+  // Calculate reply rate based on actual replies from database
+  const repliesCount = replies.length;
+  const replyRate =
+    contactedCount > 0 ? (repliesCount / contactedCount) * 100 : 0;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
@@ -212,7 +266,7 @@ export default function DashboardCampaignModal({
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-100 rounded-xl p-4 border border-gray-300">
               <div className="flex items-center justify-between mb-2">
                 <Mail className="w-5 h-5 text-[#05112b]" />
@@ -224,19 +278,6 @@ export default function DashboardCampaignModal({
               <p className="text-xs text-gray-600 mt-1">Emails delivered</p>
             </div>
 
-            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-              <div className="flex items-center justify-between mb-2">
-                <MailOpen className="w-5 h-5 text-green-600" />
-                <span className="text-xs text-green-600 font-medium">
-                  OPENS
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-green-900">
-                {campaign.openRate?.toFixed(1) || 0}%
-              </p>
-              <p className="text-xs text-green-600 mt-1">Open rate</p>
-            </div>
-
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
               <div className="flex items-center justify-between mb-2">
                 <MessageSquare className="w-5 h-5 text-orange-600" />
@@ -245,9 +286,11 @@ export default function DashboardCampaignModal({
                 </span>
               </div>
               <p className="text-2xl font-bold text-orange-900">
-                {campaign.replyRate?.toFixed(1) || 0}%
+                {replyRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-orange-600 mt-1">Reply rate</p>
+              <p className="text-xs text-orange-600 mt-1">
+                {repliesCount} replies
+              </p>
             </div>
 
             <div className="bg-gray-100 rounded-xl p-4 border border-gray-300">

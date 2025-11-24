@@ -75,9 +75,7 @@ export interface DashboardMetrics {
 export interface CampaignPerformance {
   date: string;
   sent: number;
-  opens: number;
   replies: number;
-  bounces: number;
 }
 
 export interface Lead {
