@@ -162,6 +162,13 @@ export async function POST(
       }" (${campaign._id.toString()}) with domain "${domainName}" to webhook: ${webhookUrl}`
     );
 
+    console.log("📦 Domain details:", {
+      id: domain._id.toString(),
+      name: domain.name,
+      type: domain.type,
+      webhookUrl: domain.webhookUrl,
+    });
+
     // Prepare ALL campaign data for webhook
     // Send complete campaign object with all fields
     const campaignData = {
@@ -195,6 +202,10 @@ export async function POST(
       // Include logs endpoint URL so n8n can send logs back
       logsEndpoint: logsEndpointUrl,
     };
+
+    // Log complete payload being sent to webhook
+    console.log("📤 Sending payload to webhook:");
+    console.log(JSON.stringify(campaignData, null, 2));
 
     // Send to webhook with timeout
     const controller = new AbortController();
@@ -234,6 +245,13 @@ export async function POST(
         headers: Object.fromEntries(webhookResponse.headers.entries()),
         data: webhookResponseData,
       };
+
+      // Log webhook response
+      console.log("📥 Webhook response:", {
+        status: webhookResponse.status,
+        statusText: webhookResponse.statusText,
+        data: webhookResponseData,
+      });
 
       // Track when it was last sent for activity feed (regardless of webhook response)
       await collection.updateOne(

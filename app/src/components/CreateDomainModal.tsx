@@ -20,6 +20,7 @@ export default function CreateDomainModal({
   const [smtpPassword, setSmtpPassword] = useState("");
   const [smtpHost, setSmtpHost] = useState("smtp.gmail.com");
   const [showPassword, setShowPassword] = useState(false);
+  const [imapHost, setImapHost] = useState("imap.gmail.com");
 
   if (!isOpen) return null;
 
@@ -37,6 +38,7 @@ export default function CreateDomainModal({
     const sanitizedEmail = gmailEmail.trim();
     const sanitizedPassword = smtpPassword.trim();
     const sanitizedHost = smtpHost.trim() || "smtp.gmail.com";
+    const sanitizedImapHost = imapHost.trim() || "imap.gmail.com";
 
     try {
       setConnectingGmail(true);
@@ -50,6 +52,7 @@ export default function CreateDomainModal({
           email: sanitizedEmail,
           pass: sanitizedPassword,
           host: sanitizedHost,
+          imapHost: sanitizedImapHost,
         },
       };
 
@@ -97,6 +100,7 @@ export default function CreateDomainModal({
     setSmtpPassword("");
     setSmtpHost("smtp.gmail.com");
     setShowPassword(false);
+    setImapHost("imap.gmail.com");
   };
 
   return (
@@ -194,6 +198,26 @@ export default function CreateDomainModal({
             </p>
           </div>
 
+          {/* IMAP Host */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              IMAP Host
+            </label>
+            <input
+              type="text"
+              value={imapHost}
+              onChange={(e) => setImapHost(e.target.value)}
+              placeholder="imap.gmail.com"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 transition-all"
+            />
+            <p className="mt-2 text-xs text-gray-500">
+              Defaults to{" "}
+              <code className="bg-blue-100 px-1 py-0.5 rounded">
+                imap.gmail.com
+              </code>{" "}
+              if left untouched.
+            </p>
+          </div>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-800">
               <strong>What happens:</strong> We send the email, password, and

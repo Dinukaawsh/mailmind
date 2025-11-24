@@ -71,6 +71,8 @@ export async function GET() {
         followUpDelay: item.followUpDelay || 7,
         csvData: item.csvData || [],
         isActive: item.isActive !== undefined ? item.isActive : true, // Default to true for backward compatibility
+        isProcessing: item.isProcessing || false, // Processing status
+        processedAt: item.processedAt || undefined, // When processing completed
       };
     });
 
@@ -156,6 +158,7 @@ export async function POST(request: Request) {
       status: "paused", // New campaigns start as paused
       createdAt: new Date().toISOString(),
       isActive: true, // New campaigns are active by default
+      isProcessing: true, // Campaign is being processed by webhook
     };
 
     if (startDateTimeValue) {
@@ -163,10 +166,71 @@ export async function POST(request: Request) {
     }
 
     const result = await collection.insertOne(campaignDoc);
+    const campaignId = result.insertedId.toString();
+
+    // Send campaign ID to webhook for processing
+    const webhookUrl = process.env.CAMPAIGN_PROCESSING_WEBHOOK_URL;
+
+    if (!webhookUrl) {
+      console.warn(
+        "⚠️ CAMPAIGN_PROCESSING_WEBHOOK_URL not configured. Skipping webhook call. Campaign will be marked as not processing."
+      );
+      // Mark as not processing if webhook URL is not configured
+      await collection.updateOne(
+        { _id: result.insertedId },
+        { $set: { isProcessing: false } }
+      );
+    } else {
+      try {
+        console.log(
+          `📤 Sending campaign ID ${campaignId} to webhook for processing...`
+        );
+
+        const webhookResponse = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            campaignId: campaignId,
+          }),
+        });
+
+        if (webhookResponse.ok) {
+          const responseData = await webhookResponse.json().catch(() => ({}));
+          console.log(
+            `✅ Webhook processing initiated for campaign ${campaignId}`,
+            responseData
+          );
+
+          // Webhook will call back to /api/campaigns/[id]/processing-complete
+          // to mark isProcessing as false when done
+        } else {
+          console.error(
+            `❌ Webhook returned error status: ${webhookResponse.status}`
+          );
+          // Mark as not processing if webhook fails immediately
+          await collection.updateOne(
+            { _id: result.insertedId },
+            { $set: { isProcessing: false } }
+          );
+        }
+      } catch (webhookError: any) {
+        console.error(
+          "❌ Failed to send campaign ID to webhook:",
+          webhookError.message
+        );
+        // Mark as not processing if webhook call fails
+        await collection.updateOne(
+          { _id: result.insertedId },
+          { $set: { isProcessing: false } }
+        );
+      }
+    }
 
     return NextResponse.json(
       {
-        id: result.insertedId.toString(),
+        id: campaignId,
         ...campaignDoc,
       },
       { status: 201 }

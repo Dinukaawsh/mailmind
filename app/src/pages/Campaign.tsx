@@ -1141,17 +1141,25 @@ export default function CampaignsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 text-xs font-bold rounded-full border ${getStatusColor(
-                            campaign.status
-                          )}`}
-                        >
-                          {getStatusIcon(campaign.status)}
-                          <span className="ml-1.5">
-                            {campaign.status.charAt(0).toUpperCase() +
-                              campaign.status.slice(1)}
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 text-xs font-bold rounded-full border ${getStatusColor(
+                              campaign.status
+                            )}`}
+                          >
+                            {getStatusIcon(campaign.status)}
+                            <span className="ml-1.5">
+                              {campaign.status.charAt(0).toUpperCase() +
+                                campaign.status.slice(1)}
+                            </span>
                           </span>
-                        </span>
+                          {campaign.isProcessing && (
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold text-amber-700 bg-amber-100 rounded-full border border-amber-300">
+                              <span className="animate-pulse mr-1">⏳</span>
+                              Processing...
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-1">
@@ -1187,19 +1195,27 @@ export default function CampaignsPage() {
                               </button>
                               <button
                                 className={`p-2 rounded-lg transition-all border border-transparent ${
-                                  isWithinAllowedHours()
+                                  campaign.isProcessing
+                                    ? "text-gray-400 cursor-not-allowed opacity-50"
+                                    : isWithinAllowedHours()
                                     ? "text-green-600 hover:bg-green-50 hover:border-green-200"
                                     : "text-gray-400 cursor-not-allowed opacity-50"
                                 }`}
                                 title={
-                                  isWithinAllowedHours()
+                                  campaign.isProcessing
+                                    ? "Campaign is being processed by webhook. Please wait..."
+                                    : isWithinAllowedHours()
                                     ? "Launch Campaign"
                                     : `Available 8 AM - 6 PM Paris time. Current: ${
                                         currentParisTime || "Loading..."
                                       }`
                                 }
                                 onClick={() => {
-                                  if (isWithinAllowedHours()) {
+                                  if (campaign.isProcessing) {
+                                    toast.error(
+                                      "Campaign is being processed. Please wait for processing to complete."
+                                    );
+                                  } else if (isWithinAllowedHours()) {
                                     handleStartCampaign(campaign.id);
                                   } else {
                                     toast.error(
@@ -1207,7 +1223,10 @@ export default function CampaignsPage() {
                                     );
                                   }
                                 }}
-                                disabled={!isWithinAllowedHours()}
+                                disabled={
+                                  !isWithinAllowedHours() ||
+                                  campaign.isProcessing
+                                }
                               >
                                 <Play className="w-5 h-5" />
                               </button>

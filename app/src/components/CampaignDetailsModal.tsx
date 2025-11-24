@@ -87,6 +87,38 @@ export default function CampaignDetailsModal({
     }
   };
 
+  const formatReplyBody = (body: string) => {
+    if (!body) return "";
+
+    // Split by common quoted email patterns
+    const quotedEmailPattern = /(\r\n|\n)On .+wrote:(\r\n|\n)/;
+    const parts = body.split(quotedEmailPattern);
+
+    if (parts.length > 1) {
+      // Has quoted content
+      const mainContent = parts[0].trim();
+      const quotedContent = body.substring(mainContent.length).trim();
+
+      return (
+        <>
+          <div className="mb-3">{mainContent}</div>
+          {quotedContent && (
+            <details className="mt-3 pt-3 border-t border-gray-300">
+              <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700 font-semibold">
+                Show quoted text
+              </summary>
+              <div className="mt-2 text-xs text-gray-500 italic pl-3 border-l-2 border-gray-300">
+                {quotedContent}
+              </div>
+            </details>
+          )}
+        </>
+      );
+    }
+
+    return body;
+  };
+
   const scheduleInfo = getScheduleDisplay(campaign);
 
   const handleTabChange = (tab: CampaignDetailsTab) => {
@@ -466,8 +498,8 @@ export default function CampaignDetailsModal({
                           {reply.subject}
                         </p>
                       )}
-                      <div className="bg-gray-50 rounded-xl border border-gray-100 p-3 text-sm text-gray-700 whitespace-pre-wrap">
-                        {reply.body}
+                      <div className="bg-gray-50 rounded-xl border border-gray-100 p-3 text-sm text-gray-700 whitespace-pre-wrap break-words overflow-auto max-h-96">
+                        {formatReplyBody(reply.body)}
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
                         <span
