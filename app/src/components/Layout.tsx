@@ -41,25 +41,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-indigo-900 via-purple-900 to-pink-900 shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-gray-300 shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between px-6 py-6 border-b border-white/10">
+          <div className="flex items-center justify-between px-6 py-6 border-b border-gray-400">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-[#05112b] rounded-xl flex items-center justify-center shadow-lg border border-gray-400">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white">Mail-Mind</h1>
-                <p className="text-xs text-purple-300">Email Automation</p>
+                <h1 className="text-lg font-bold text-[#05112b]">Mail-Mind</h1>
+                <p className="text-xs text-gray-600">Email Automation</p>
               </div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-white/70 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all"
+              className="lg:hidden text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-400 rounded-lg p-1.5 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -79,8 +79,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   className={`group flex items-center justify-between px-4 py-3.5 text-sm font-semibold rounded-xl transition-all ${
                     isActive
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105"
-                      : "text-white/70 hover:text-white hover:bg-white/10"
+                      ? "bg-[#05112b] text-white shadow-lg"
+                      : "text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-400"
                   }`}
                   onClick={() => {
                     setSidebarOpen(false);
@@ -88,10 +88,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-2 rounded-lg transition-all ${
+                      className={`p-2 rounded-lg border border-gray-400 transition-all ${
                         isActive
-                          ? "bg-white/20"
-                          : "bg-white/5 group-hover:bg-white/10"
+                          ? "bg-white/20 border-white"
+                          : "bg-gray-200 group-hover:bg-gray-100"
                       }`}
                     >
                       <Icon className="w-5 h-5" />
@@ -138,17 +138,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="lg:pl-72">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-gray-200 shadow-sm">
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg p-2 transition-all"
+                className="lg:hidden text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-100 rounded-lg p-2 transition-all"
               >
                 <Menu className="w-6 h-6" />
               </button>
               <div className="hidden lg:block">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h2 className="text-xl font-bold text-[#05112b]">
                   {navigation.find(
                     (item) =>
                       pathname === item.href ||

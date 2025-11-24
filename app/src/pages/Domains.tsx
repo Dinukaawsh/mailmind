@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import EditDomainModal from "../components/EditDomainModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import CreateDomainModal from "../components/CreateDomainModal";
+import LoadingSpinner from "../components/Loading/LoadingSpinner";
 
 export default function DomainsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -153,13 +154,11 @@ export default function DomainsPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                <Server className="w-8 h-8 text-blue-600" />
+              <div className="p-3 bg-gray-100 rounded-xl border border-gray-300">
+                <Server className="w-8 h-8 text-[#05112b]" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Domains
-                </h1>
+                <h1 className="text-4xl font-bold text-[#05112b]">Domains</h1>
                 <p className="mt-1 text-gray-600 flex items-center">
                   <Activity className="w-4 h-4 mr-2" />
                   Manage your sending domains and Gmail integrations
@@ -170,7 +169,7 @@ export default function DomainsPage() {
           <div className="flex space-x-3">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
+              className="flex items-center px-5 py-2.5 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add Domain
@@ -195,8 +194,8 @@ export default function DomainsPage() {
                 Connected domains
               </p>
             </div>
-            <div className="ml-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-              <Server className="w-8 h-8 text-blue-600" />
+            <div className="ml-4 p-3 bg-gray-100 rounded-xl border border-gray-300">
+              <Server className="w-8 h-8 text-[#05112b]" />
             </div>
           </div>
         </div>
@@ -266,20 +265,7 @@ export default function DomainsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-pulse">
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-                <div
-                  className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-              <p className="text-gray-500">Loading domains...</p>
-            </div>
+            <LoadingSpinner />
           </div>
         ) : domains.length === 0 ? (
           <div className="p-12 text-center">
@@ -293,7 +279,7 @@ export default function DomainsPage() {
             <div className="mt-6 flex items-center justify-center gap-3">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="flex items-center px-4 py-2 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-colors text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Domain
@@ -305,7 +291,7 @@ export default function DomainsPage() {
             {domains.map((domain) => (
               <div
                 key={domain.id}
-                className="p-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-200"
+                className="p-6 hover:bg-gray-50 transition-all duration-200"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1">

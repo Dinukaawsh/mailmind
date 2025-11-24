@@ -15,6 +15,7 @@ import {
 import { unsubscriberApi } from "../utils/api";
 import { Unsubscriber } from "../types";
 import toast from "react-hot-toast";
+import LoadingSpinner from "../components/Loading/LoadingSpinner";
 
 export default function UnsubscribersPage() {
   const [unsubscribers, setUnsubscribers] = useState<Unsubscriber[]>([]);
@@ -120,11 +121,11 @@ export default function UnsubscribersPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl">
-                <UserX className="w-8 h-8 text-red-600" />
+              <div className="p-3 bg-gray-100 rounded-xl border border-gray-300">
+                <UserX className="w-8 h-8 text-[#05112b]" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-[#05112b]">
                   Unsubscribers
                 </h1>
                 <p className="mt-1 text-gray-600 flex items-center">
@@ -148,7 +149,7 @@ export default function UnsubscribersPage() {
             </button>
             <button
               onClick={handleExport}
-              className="flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
+              className="flex items-center px-5 py-2.5 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
             >
               <Download className="w-5 h-5 mr-2" />
               Export CSV
@@ -272,7 +273,7 @@ export default function UnsubscribersPage() {
               placeholder="Search by email address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
             />
           </div>
           {searchQuery && (
@@ -299,20 +300,7 @@ export default function UnsubscribersPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-pulse">
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-                <div
-                  className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-              <p className="text-gray-500">Loading unsubscribers...</p>
-            </div>
+            <LoadingSpinner />
           </div>
         ) : filteredUnsubscribers.length === 0 ? (
           <div className="p-12 text-center">
@@ -489,7 +477,7 @@ export default function UnsubscribersPage() {
                               onClick={() => setCurrentPage(pageNum)}
                               className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                 currentPage === pageNum
-                                  ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                  ? "z-10 bg-gray-200 border-gray-400 text-[#05112b]"
                                   : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                               }`}
                             >

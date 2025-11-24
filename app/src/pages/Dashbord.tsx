@@ -45,6 +45,7 @@ import {
 import MetricCard from "../components/MetricCard";
 import toast from "react-hot-toast";
 import DashboardCampaignModal from "../components/DashboardCampaignModal";
+import LoadingSpinner from "../components/Loading/LoadingSpinner";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -203,21 +204,8 @@ export default function Dashboard() {
 
   if (loading && !metrics) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-            <div
-              className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-              style={{ animationDelay: "0.1s" }}
-            ></div>
-            <div
-              className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-              style={{ animationDelay: "0.2s" }}
-            ></div>
-          </div>
-          <p className="mt-4 text-gray-500">Loading dashboard...</p>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner />
       </div>
     );
   }
@@ -255,13 +243,11 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-                <Mail className="w-8 h-8 text-purple-600" />
+              <div className="p-3 bg-gray-100 rounded-xl border border-gray-300">
+                <Mail className="w-8 h-8 text-[#05112b]" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Dashboard
-                </h1>
+                <h1 className="text-4xl font-bold text-[#05112b]">Dashboard</h1>
                 <p className="mt-1 text-gray-600 flex items-center">
                   <Activity className="w-4 h-4 mr-2" />
                   Real-time overview of your email outreach campaigns
@@ -319,11 +305,11 @@ export default function Dashboard() {
       {/* Active Campaigns Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Mail className="w-6 h-6 mr-2 text-blue-600" />
+          <h2 className="text-2xl font-bold text-[#05112b] flex items-center">
+            <Mail className="w-6 h-6 mr-2 text-[#05112b]" />
             Active Campaigns
           </h2>
-          <span className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-50 rounded-full">
+          <span className="px-3 py-1 text-sm font-medium text-[#05112b] bg-gray-200 rounded-full">
             {campaigns.filter((c) => c.status === "active").length} Active
           </span>
         </div>
@@ -342,7 +328,7 @@ export default function Dashboard() {
               <div
                 key={campaign.id}
                 onClick={() => setSelectedCampaign(campaign)}
-                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-lg border-2 border-gray-200 p-5 cursor-pointer transition-all duration-300 hover:border-blue-400 hover:shadow-lg hover:-translate-y-1"
+                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-lg border-2 border-gray-200 p-5 cursor-pointer transition-all duration-300 hover:border-gray-400 hover:shadow-lg hover:-translate-y-1"
               >
                 {/* Status Badge */}
                 <div className="absolute top-3 right-3">
@@ -351,7 +337,7 @@ export default function Dashboard() {
 
                 {/* Campaign Info */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1 pr-8 truncate group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1 pr-8 truncate group-hover:text-[#05112b] transition-colors">
                     {campaign.name}
                   </h3>
                   <span
@@ -396,7 +382,7 @@ export default function Dashboard() {
                   <span className="text-xs text-gray-400">
                     Click for details
                   </span>
-                  <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                  <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-[#05112b] transition-colors" />
                 </div>
               </div>
             ))}
@@ -405,7 +391,7 @@ export default function Dashboard() {
 
         {campaigns.length > 6 && (
           <div className="mt-6 text-center">
-            <button className="px-6 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+            <button className="px-6 py-2 text-sm font-medium text-[#05112b] hover:text-[#05112b]/80 hover:bg-gray-100 rounded-lg transition-colors">
               View All Campaigns →
             </button>
           </div>
@@ -416,8 +402,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Domain Usage Distribution */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 transform transition-all hover:shadow-lg">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-purple-600" />
+          <h2 className="text-xl font-bold text-[#05112b] mb-4 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-[#05112b]" />
             Domain Usage Distribution
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -450,8 +436,8 @@ export default function Dashboard() {
         {/* Campaign Performance Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 transform transition-all hover:shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-blue-600" />
+            <h2 className="text-xl font-bold text-[#05112b] flex items-center">
+              <Activity className="w-5 h-5 mr-2 text-[#05112b]" />
               Performance Trend (30 Days)
             </h2>
             <div className="group relative">
@@ -528,8 +514,8 @@ export default function Dashboard() {
 
       {/* Recent Activity */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-          <Clock className="w-5 h-5 mr-2 text-orange-600" />
+        <h2 className="text-xl font-bold text-[#05112b] mb-6 flex items-center">
+          <Clock className="w-5 h-5 mr-2 text-[#05112b]" />
           Recent Activity
         </h2>
         {recentActivity.length === 0 ? (

@@ -44,19 +44,19 @@ export default function TimePicker({
 
   const variantClasses = {
     default: {
-      base: "bg-white border-2 border-gray-300 hover:border-purple-400",
-      focus: "focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+      base: "bg-white border-2 border-gray-300 hover:border-[#beb7c9]",
+      focus: "focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9]",
       error: "border-red-500 focus:ring-red-500 focus:border-red-500",
     },
     outlined: {
-      base: "bg-transparent border-2 border-purple-300 hover:border-purple-500",
-      focus: "focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+      base: "bg-transparent border-2 border-gray-300 hover:border-[#beb7c9]",
+      focus: "focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9]",
       error: "border-red-500 focus:ring-red-500 focus:border-red-500",
     },
     filled: {
       base: "bg-gray-100 border-2 border-transparent hover:bg-gray-200",
       focus:
-        "focus:ring-2 focus:ring-purple-500 focus:bg-white focus:border-purple-500",
+        "focus:ring-2 focus:ring-[#beb7c9] focus:bg-white focus:border-[#beb7c9]",
       error: "bg-red-50 border-red-500 focus:ring-red-500",
     },
   };
@@ -176,10 +176,10 @@ export default function TimePicker({
                   w-full px-4 py-2 text-left rounded-lg transition-all duration-150
                   ${
                     time === value
-                      ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white font-medium shadow-md"
+                      ? "bg-[#05112b] text-white font-medium shadow-md"
                       : isTimeDisabled(time)
                       ? "text-gray-300 cursor-not-allowed"
-                      : "hover:bg-purple-50 text-gray-700"
+                      : "hover:bg-gray-100 text-gray-700"
                   }
                 `}
               >

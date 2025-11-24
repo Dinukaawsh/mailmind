@@ -50,18 +50,18 @@ export default function Dropdown({
 
   const variantClasses = {
     default: {
-      base: "bg-white border-2 border-gray-300 hover:border-purple-400",
-      focus: "focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+      base: "bg-white border-2 border-gray-300 hover:border-[#beb7c9]",
+      focus: "focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9]",
       error: "border-red-500 focus:ring-red-500 focus:border-red-500",
     },
     outlined: {
-      base: "bg-transparent border-2 border-purple-300 hover:border-purple-500",
-      focus: "focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+      base: "bg-transparent border-2 border-gray-300 hover:border-[#beb7c9]",
+      focus: "focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9]",
       error: "border-red-500 focus:ring-red-500 focus:border-red-500",
     },
     filled: {
       base: "bg-gray-100 border-2 border-transparent hover:bg-gray-200",
-      focus: "focus:ring-2 focus:ring-purple-500 focus:bg-white",
+      focus: "focus:ring-2 focus:ring-[#beb7c9] focus:bg-white",
       error: "bg-red-50 border-red-500 focus:ring-red-500",
     },
   };
@@ -107,7 +107,7 @@ export default function Dropdown({
           ${error ? currentVariant.error : currentVariant.base}
           ${!disabled && currentVariant.focus}
           ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-          ${isOpen ? "ring-2 ring-purple-500 border-purple-500" : ""}
+          ${isOpen ? "ring-2 ring-[#beb7c9] border-[#beb7c9]" : ""}
         `}
       >
         <span className="flex items-center gap-2 truncate">
@@ -148,11 +148,11 @@ export default function Dropdown({
                       ${
                         option.disabled
                           ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-purple-50 cursor-pointer"
+                          : "hover:bg-gray-100 cursor-pointer"
                       }
                       ${
                         option.value === value
-                          ? "bg-purple-100 text-purple-900 font-medium"
+                          ? "bg-gray-200 text-[#05112b] font-medium"
                           : "text-gray-700"
                       }
                     `}
@@ -164,7 +164,7 @@ export default function Dropdown({
                       <span>{option.label}</span>
                     </span>
                     {option.value === value && (
-                      <Check className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                      <Check className="w-5 h-5 text-[#05112b] flex-shrink-0" />
                     )}
                   </button>
                 </li>

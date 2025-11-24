@@ -9,8 +9,8 @@ export default function NotFoundPage() {
       <div className="max-w-2xl w-full text-center">
         {/* 404 Number */}
         <div className="mb-8">
-          <h1 className="text-9xl font-bold text-gray-900 leading-none">404</h1>
-          <div className="mt-4 h-2 w-32 bg-blue-600 mx-auto rounded-full"></div>
+          <h1 className="text-9xl font-bold text-[#05112b] leading-none">404</h1>
+          <div className="mt-4 h-2 w-32 bg-[#05112b] mx-auto rounded-full"></div>
         </div>
 
         {/* Main Message */}
@@ -30,7 +30,7 @@ export default function NotFoundPage() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
           <Link
             href="/"
-            className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="flex items-center px-6 py-3 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-colors font-medium"
           >
             <Home className="w-5 h-5 mr-2" />
             Go to Dashboard
@@ -54,8 +54,8 @@ export default function NotFoundPage() {
               href="/"
               className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors group"
             >
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-200 transition-colors">
-                <Home className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center mb-2 group-hover:bg-gray-300 transition-colors border border-gray-300">
+                <Home className="w-6 h-6 text-[#05112b]" />
               </div>
               <span className="text-sm font-medium text-gray-700">
                 Dashboard
@@ -65,8 +65,8 @@ export default function NotFoundPage() {
               href="/campaigns"
               className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors group"
             >
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-200 transition-colors">
-                <Mail className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center mb-2 group-hover:bg-gray-300 transition-colors border border-gray-300">
+                <Mail className="w-6 h-6 text-[#05112b]" />
               </div>
               <span className="text-sm font-medium text-gray-700">
                 Campaigns
@@ -76,8 +76,8 @@ export default function NotFoundPage() {
               href="/unsubscribers"
               className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors group"
             >
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-200 transition-colors">
-                <Search className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center mb-2 group-hover:bg-gray-300 transition-colors border border-gray-300">
+                <Search className="w-6 h-6 text-[#05112b]" />
               </div>
               <span className="text-sm font-medium text-gray-700">
                 Unsubscribers

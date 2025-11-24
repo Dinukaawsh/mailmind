@@ -489,12 +489,12 @@ export default function CreateCampaignModal({
           onClick={onClose}
         ></div>
         <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-5 flex items-center justify-between">
+          <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">
                 Create New Campaign
               </h2>
-              <p className="mt-1 text-sm text-purple-100">
+              <p className="mt-1 text-sm text-gray-300">
                 Set up a new email outreach campaign
               </p>
             </div>
@@ -534,13 +534,13 @@ export default function CreateCampaignModal({
                   className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors ${
                     errors.csvData
                       ? "border-red-500"
-                      : "border-gray-300 hover:border-blue-400"
+                      : "border-gray-300 hover:border-[#beb7c9]"
                   }`}
                 >
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="flex text-sm text-gray-600">
-                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#05112b] hover:text-[#05112b]/80">
                         <span>Upload a file</span>
                         <input
                           type="file"
@@ -582,21 +582,21 @@ export default function CreateCampaignModal({
                       </button>
                     </div>
                     {csvColumns.length > 0 && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-xs font-medium text-blue-900 mb-2">
+                      <div className="bg-gray-100 border border-gray-300 rounded-lg p-3">
+                        <p className="text-xs font-medium text-gray-900 mb-2">
                           Available CSV Columns:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {csvColumns.map((col) => (
                             <span
                               key={col}
-                              className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-mono"
+                              className="px-2 py-1 bg-gray-200 text-[#05112b] rounded text-xs font-mono"
                             >
                               {col}
                             </span>
                           ))}
                         </div>
-                        <p className="text-xs text-blue-700 mt-2">
+                        <p className="text-xs text-gray-700 mt-2">
                           Use placeholders like {"{{"}
                           {csvColumns[0]?.toLowerCase()}
                           {"}}"} in your template
@@ -688,7 +688,7 @@ export default function CreateCampaignModal({
                                   <tr
                                     key={actualIndex}
                                     className={`hover:bg-gray-50 transition-colors ${
-                                      isSelected ? "bg-purple-50" : ""
+                                      isSelected ? "bg-gray-100" : ""
                                     }`}
                                   >
                                     <td className="px-4 py-3">
@@ -714,7 +714,7 @@ export default function CreateCampaignModal({
                                       <button
                                         type="button"
                                         onClick={() => handlePreview(lead)}
-                                        className="text-blue-600 hover:text-blue-800"
+                                        className="text-[#05112b] hover:text-[#05112b]/80"
                                         title="Preview email for this lead"
                                       >
                                         <Eye className="w-4 h-4" />
@@ -808,11 +808,11 @@ export default function CreateCampaignModal({
                       </button>
                     </div>
                   ) : (
-                    <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                    <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#beb7c9] transition-colors">
                       <div className="space-y-1 text-center">
                         <ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
                         <div className="flex text-sm text-gray-600">
-                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#05112b] hover:text-[#05112b]/80">
                             <span>Upload image</span>
                             <input
                               type="file"
@@ -851,11 +851,11 @@ export default function CreateCampaignModal({
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex items-center justify-end space-x-4 pt-6 border-t-2 border-gray-200">
+            <div className="grid grid-cols-2 gap-4 pt-6 border-t-2 border-gray-200">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
                 disabled={loading}
               >
                 Cancel
@@ -863,7 +863,7 @@ export default function CreateCampaignModal({
               <button
                 type="submit"
                 disabled={loading || !hasValidEmailColumn}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                className="w-full px-6 py-3 bg-[#05112b] text-white font-bold rounded-xl hover:bg-[#05112b]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {loading ? "Creating..." : "Create Campaign"}
               </button>

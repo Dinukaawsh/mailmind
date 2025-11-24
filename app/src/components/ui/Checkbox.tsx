@@ -37,23 +37,27 @@ export default function Checkbox({
 
   const variantClasses = {
     primary: {
-      bg: "bg-gradient-to-br from-purple-600 to-pink-600",
-      border: "border-purple-300 hover:border-purple-500",
-      focus: "focus:ring-purple-500",
+      bg: "bg-[#05112b]",
+      border: "border-gray-300 hover:border-[#beb7c9]",
+      checkedBorder: "border-[#beb7c9]",
+      focus: "focus:ring-[#beb7c9]",
     },
     secondary: {
-      bg: "bg-gradient-to-br from-gray-600 to-gray-700",
+      bg: "bg-gray-600",
       border: "border-gray-300 hover:border-gray-500",
+      checkedBorder: "border-gray-500",
       focus: "focus:ring-gray-500",
     },
     success: {
-      bg: "bg-gradient-to-br from-green-600 to-emerald-600",
-      border: "border-green-300 hover:border-green-500",
+      bg: "bg-green-600",
+      border: "border-gray-300 hover:border-green-500",
+      checkedBorder: "border-green-500",
       focus: "focus:ring-green-500",
     },
     danger: {
-      bg: "bg-gradient-to-br from-red-600 to-rose-600",
-      border: "border-red-300 hover:border-red-500",
+      bg: "bg-red-600",
+      border: "border-gray-300 hover:border-red-500",
+      checkedBorder: "border-red-500",
       focus: "focus:ring-red-500",
     },
   };
@@ -77,17 +81,18 @@ export default function Checkbox({
         <div
           className={`
             ${sizeClasses[size]}
-            border-2 rounded-md transition-all duration-200
+            border-2 rounded-md transition-all duration-200 ease-in-out
             ${
               checked || indeterminate
-                ? `${currentVariant.bg} border-transparent shadow-md`
-                : `bg-white ${currentVariant.border}`
+                ? `${currentVariant.bg} ${currentVariant.checkedBorder} shadow-md scale-75`
+                : `bg-white ${currentVariant.border} scale-100`
             }
             ${
               !disabled &&
-              `${currentVariant.focus} focus-within:ring-2 focus-within:ring-offset-2`
+              `${currentVariant.focus} focus-within:ring-2 focus-within:ring-opacity-50`
             }
             ${!disabled && "group-hover:shadow-sm"}
+            transform
           `}
         >
           {(checked || indeterminate) && (

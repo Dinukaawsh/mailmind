@@ -42,19 +42,19 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const variantClasses = {
       default: {
-        base: "bg-white border-2 border-gray-300 hover:border-purple-400",
-        focus: "focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+        base: "bg-white border-2 border-gray-300 hover:border-[#beb7c9]",
+        focus: "focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9]",
         error: "border-red-500 focus:ring-red-500 focus:border-red-500",
       },
       outlined: {
-        base: "bg-transparent border-2 border-purple-300 hover:border-purple-500",
-        focus: "focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+        base: "bg-transparent border-2 border-gray-300 hover:border-[#beb7c9]",
+        focus: "focus:ring-2 focus:ring-[#beb7c9] focus:border-[#beb7c9]",
         error: "border-red-500 focus:ring-red-500 focus:border-red-500",
       },
       filled: {
         base: "bg-gray-100 border-2 border-transparent hover:bg-gray-200",
         focus:
-          "focus:ring-2 focus:ring-purple-500 focus:bg-white focus:border-purple-500",
+          "focus:ring-2 focus:ring-[#beb7c9] focus:bg-white focus:border-[#beb7c9]",
         error: "bg-red-50 border-red-500 focus:ring-red-500",
       },
     };

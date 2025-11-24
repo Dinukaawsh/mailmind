@@ -235,7 +235,7 @@ export default function TemplateEditor({
         className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 font-mono text-sm text-gray-900 placeholder-gray-400 outline-none transition-all ${
           error
             ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-            : "border-gray-300 focus:ring-purple-500 focus:border-purple-500"
+            : "border-gray-300 focus:ring-[#beb7c9] focus:border-[#beb7c9]"
         }`}
       />
       {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}

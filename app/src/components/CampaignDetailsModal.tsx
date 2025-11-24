@@ -194,10 +194,10 @@ export default function CampaignDetailsModal({
         onClick={onClose}
       ></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-[#05112b] px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">{campaign.name}</h2>
-            <p className="text-purple-100 text-sm mt-1">
+            <p className="text-gray-300 text-sm mt-1">
               Campaign Details & Leads
             </p>
           </div>
@@ -217,7 +217,7 @@ export default function CampaignDetailsModal({
                 onClick={() => handleTabChange(tab.id)}
                 className={`relative px-4 py-2 text-sm font-semibold rounded-full transition-all ${
                   activeTab === tab.id
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md"
+                    ? "bg-[#05112b] text-white shadow-md"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 } ${tab.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
               >
@@ -227,7 +227,7 @@ export default function CampaignDetailsModal({
                     className={`absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full border ${
                       activeTab === tab.id
                         ? "bg-white/30 text-white border-white"
-                        : "bg-indigo-500 text-white border-indigo-400"
+                        : "bg-[#05112b] text-white border-[#05112b]"
                     }`}
                   >
                     {tab.badge > 9 ? "9+" : tab.badge}
@@ -241,9 +241,9 @@ export default function CampaignDetailsModal({
           {activeTab === "overview" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
+                <div className="bg-gray-100 rounded-xl border border-gray-300 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-2">
+                    <div className="w-8 h-8 bg-[#05112b] rounded-lg flex items-center justify-center mr-2">
                       <Mail className="w-4 h-4 text-white" />
                     </div>
                     Email Template
@@ -287,9 +287,9 @@ export default function CampaignDetailsModal({
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
+              <div className="bg-gray-100 rounded-xl border border-gray-300 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-2">
+                  <div className="w-8 h-8 bg-[#05112b] rounded-lg flex items-center justify-center mr-2">
                     <Eye className="w-4 h-4 text-white" />
                   </div>
                   Campaign Information
@@ -342,9 +342,9 @@ export default function CampaignDetailsModal({
           {activeTab === "leads" && (
             <>
               {campaign.csvData && campaign.csvData.length > 0 ? (
-                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-200 p-6">
+                <div className="bg-gray-100 rounded-xl border border-gray-300 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center mr-2">
+                    <div className="w-8 h-8 bg-[#05112b] rounded-lg flex items-center justify-center mr-2">
                       <Eye className="w-4 h-4 text-white" />
                     </div>
                     Leads ({campaign.csvData.length} total)
@@ -370,7 +370,7 @@ export default function CampaignDetailsModal({
                         {campaign.csvData.map((lead, index) => (
                           <tr
                             key={index}
-                            className="hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 transition-all duration-200"
+                            className="hover:bg-gray-50 transition-all duration-200"
                           >
                             {Object.values(lead).map(
                               (value: any, valueIndex) => (
@@ -392,7 +392,7 @@ export default function CampaignDetailsModal({
                                     bodyImageUrl
                                   )
                                 }
-                                className="inline-flex items-center px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
+                                className="inline-flex items-center px-3 py-1.5 text-[#05112b] hover:bg-gray-100 rounded-lg transition-all border border-transparent hover:border-gray-300"
                                 title="Preview email for this lead"
                               >
                                 <Eye className="w-4 h-4 mr-1" />
@@ -422,11 +422,11 @@ export default function CampaignDetailsModal({
 
           {activeTab === "replies" && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-5 flex items-center justify-between flex-wrap gap-4">
+              <div className="bg-gray-100 rounded-xl border border-gray-300 p-5 flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-full bg-white border border-indigo-200 flex items-center justify-center shadow-sm">
-                      <MessageSquare className="w-4 h-4 text-indigo-600" />
+                    <div className="w-9 h-9 rounded-full bg-white border border-gray-300 flex items-center justify-center shadow-sm">
+                      <MessageSquare className="w-4 h-4 text-[#05112b]" />
                     </div>
                     Replies
                   </h3>
@@ -438,8 +438,8 @@ export default function CampaignDetailsModal({
                 </div>
                 <div className="flex items-center gap-3">
                   {repliesLoading && (
-                    <div className="flex items-center text-sm text-indigo-700 font-semibold">
-                      <span className="animate-spin mr-2 h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full"></span>
+                    <div className="flex items-center text-sm text-[#05112b] font-semibold">
+                      <span className="animate-spin mr-2 h-4 w-4 border-2 border-[#05112b] border-t-transparent rounded-full"></span>
                       Syncing replies...
                     </div>
                   )}
@@ -447,7 +447,7 @@ export default function CampaignDetailsModal({
                     <button
                       onClick={onRefreshReplies}
                       disabled={repliesLoading}
-                      className="inline-flex items-center px-4 py-2 bg-white text-indigo-600 rounded-lg border border-indigo-200 font-semibold text-sm hover:bg-indigo-50 transition-all disabled:opacity-60"
+                      className="inline-flex items-center px-4 py-2 bg-white text-[#05112b] rounded-lg border border-gray-300 font-semibold text-sm hover:bg-gray-100 transition-all disabled:opacity-60"
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh
@@ -463,7 +463,7 @@ export default function CampaignDetailsModal({
               )}
 
               {replies.length === 0 && !repliesLoading ? (
-                <div className="bg-white rounded-2xl border border-dashed border-indigo-200 text-center py-12 px-6">
+                <div className="bg-white rounded-2xl border border-dashed border-gray-300 text-center py-12 px-6">
                   <p className="text-gray-500 font-medium">
                     No replies detected for this campaign yet.
                   </p>
@@ -508,7 +508,7 @@ export default function CampaignDetailsModal({
                               ? "bg-green-50 text-green-700 border-green-200"
                               : reply.status === "flagged"
                               ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              : "bg-gray-100 text-[#05112b] border-gray-300"
                           }`}
                         >
                           {reply.status ? reply.status.toUpperCase() : "UNREAD"}

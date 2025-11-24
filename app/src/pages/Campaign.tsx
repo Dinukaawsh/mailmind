@@ -41,6 +41,7 @@ import EditCampaignModal from "../components/EditCampaignModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import CreateCampaignModal from "../components/CreateCampaignModal";
 import LogsModal from "../components/LogsModal";
+import LoadingSpinner from "../components/Loading/LoadingSpinner";
 
 type DetailsTab = "overview" | "leads" | "replies";
 type CampaignTab = "active" | "inactive";
@@ -715,13 +716,11 @@ export default function CampaignsPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-                <Mail className="w-8 h-8 text-purple-600" />
+              <div className="p-3 bg-gray-100 rounded-xl border border-gray-300">
+                <Mail className="w-8 h-8 text-[#05112b]" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Campaigns
-                </h1>
+                <h1 className="text-4xl font-bold text-[#05112b]">Campaigns</h1>
                 <p className="mt-1 text-gray-600 flex items-center">
                   <Activity className="w-4 h-4 mr-2" />
                   Manage and monitor your email campaigns
@@ -792,7 +791,7 @@ export default function CampaignsPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
+              className="flex items-center px-6 py-3 bg-[#05112b] text-white rounded-xl hover:bg-[#05112b]/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
             >
               <Plus className="w-5 h-5 mr-2" />
               Create Campaign
@@ -819,8 +818,8 @@ export default function CampaignsPage() {
                 {campaigns.filter((c) => c.isActive === false).length} Archived
               </p>
             </div>
-            <div className="ml-4 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-              <Mail className="w-8 h-8 text-purple-600" />
+            <div className="ml-4 p-3 bg-gray-100 rounded-xl border border-gray-300">
+              <Mail className="w-8 h-8 text-[#05112b]" />
             </div>
           </div>
         </div>
@@ -972,7 +971,7 @@ export default function CampaignsPage() {
               placeholder="Search campaigns by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400 outline-none"
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-400 outline-none"
             />
           </div>
           {searchQuery && (
@@ -999,20 +998,7 @@ export default function CampaignsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-pulse">
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"></div>
-                <div
-                  className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-              <p className="text-gray-500">Loading campaigns...</p>
-            </div>
+            <LoadingSpinner />
           </div>
         ) : filteredCampaigns.length === 0 ? (
           <div className="p-12 text-center">
@@ -1037,7 +1023,7 @@ export default function CampaignsPage() {
                 </p>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-6 inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md"
+                  className="mt-6 inline-flex items-center px-4 py-2 bg-[#05112b] text-white rounded-lg hover:bg-[#05112b]/90 transition-all shadow-md"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Campaign
@@ -1108,18 +1094,18 @@ export default function CampaignsPage() {
                   return (
                     <tr
                       key={campaign.id}
-                      className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200"
+                      className="hover:bg-gray-50 transition-all duration-200"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div
                           className="flex items-center cursor-pointer group"
                           onClick={() => handleDetailsClick(campaign.id)}
                         >
-                          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg flex items-center justify-center group-hover:from-purple-100 group-hover:to-pink-100 transition-all">
-                            <Mail className="w-5 h-5 text-purple-600" />
+                          <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-all border border-gray-300">
+                            <Mail className="w-5 h-5 text-[#05112b]" />
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                            <div className="text-sm font-semibold text-gray-900 group-hover:text-[#05112b] transition-colors">
                               {campaign.name}
                             </div>
                             <div className="text-xs text-gray-500">
@@ -1239,11 +1225,15 @@ export default function CampaignsPage() {
                                     : "Launch Campaign"
                                 }
                                 onClick={() => {
-                                  if (campaign.processingStatus === "processing") {
+                                  if (
+                                    campaign.processingStatus === "processing"
+                                  ) {
                                     toast.error(
                                       "Campaign is still being processed. Please wait..."
                                     );
-                                  } else if (campaign.processingStatus === "error") {
+                                  } else if (
+                                    campaign.processingStatus === "error"
+                                  ) {
                                     toast.error(
                                       "Campaign processing failed. Please try recreating the campaign."
                                     );
