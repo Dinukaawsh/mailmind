@@ -51,8 +51,8 @@ export default function CreateDomainModal({
         web: {
           email: sanitizedEmail,
           pass: sanitizedPassword,
-          host: sanitizedHost,
-          imapHost: sanitizedImapHost,
+          smtp_host: sanitizedHost,
+          imap_host: sanitizedImapHost,
         },
       };
 
