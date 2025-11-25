@@ -174,7 +174,7 @@ export async function POST(request: Request) {
       // Send campaign ID to webhook for processing
       const webhookUrl =
         process.env.CAMPAIGN_PROCESSING_WEBHOOK_URL ||
-        "https://n8n.isra-land.com/webhook/65395249-d5f5-42ea-a45b-87382122cc1a";
+        "https://mailmind.cloud/webhook/65395249-d5f5-42ea-a45b-87382122cc1a";
 
       console.log(
         `🚀 Sending campaign ${campaignId} to webhook for processing...`

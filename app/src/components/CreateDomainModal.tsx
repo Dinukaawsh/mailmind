@@ -46,7 +46,7 @@ export default function CreateDomainModal({
       // Call n8n webhook for Gmail setup
       const webhookUrl =
         process.env.NEXT_PUBLIC_GMAIL_SETUP_WEBHOOK ||
-        "https://n8n.isra-land.com/webhook/2e5ec21d-0a5e-4a14-af15-8881a0ac88e5";
+        "https://mailmind.cloud/webhook/2e5ec21d-0a5e-4a14-af15-8881a0ac88e5";
       const payload = {
         web: {
           email: sanitizedEmail,
