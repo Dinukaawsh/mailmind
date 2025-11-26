@@ -99,6 +99,7 @@ export default function NotFound() {
         </div>
 
         {/* Help Text */}
+
         <div className="mt-8">
           <p className="text-sm text-gray-500">
             Need help? Contact support or check our documentation.
